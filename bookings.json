@@ -1,0 +1,24 @@
+[
+  {
+    "id": "575c1616-c1b6-4377-842d-74692fead15f",
+    "bookingNo": "SS-615102",
+    "name": "Md Arshak",
+    "phone": "6387207669",
+    "service": "Hair + Beard — ₹220",
+    "date": "2026-08-18",
+    "time": "11:00 AM",
+    "notes": "Tapper fade",
+    "status": "Booked"
+  },
+  {
+    "id": "8b0f42cc-b258-4904-9fe6-d37a58dc93bc",
+    "bookingNo": "SS-757190",
+    "name": "Ddd",
+    "phone": "6387207669",
+    "service": "Head Massage — ₹120",
+    "date": "2026-08-18",
+    "time": "01:30 PM",
+    "notes": "",
+    "status": "Booked"
+  }
+]

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StyleSpot Salon | Book Your Appointment</title>
+<style>
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#0b0b0d;color:#f5f2ec;font-family:Arial,system-ui,sans-serif;line-height:1.5}
+.nav{height:74px;padding:0 6%;display:flex;align-items:center;gap:28px;border-bottom:1px solid #28282e;background:#0b0b0d;position:sticky;top:0;z-index:10}.brand{margin-right:auto;font-weight:800;font-size:21px}.brand span,.goldtext,.eyebrow{color:#d8aa60}.nav a{color:#ddd;text-decoration:none}.hero{padding:85px 8%;display:grid;grid-template-columns:1.1fr .9fr;gap:55px;align-items:center;background:radial-gradient(circle at 80% 20%,#352819,transparent 35%)}.eyebrow{font-size:12px;font-weight:800;letter-spacing:2px}.hero h1{font:700 clamp(55px,8vw,100px)/.95 Georgia,serif;margin:18px 0}.hero h1 em{color:#d8aa60;font-style:normal}.hero p{font-size:18px;color:#aaa;max-width:650px}.btn{display:inline-block;padding:14px 20px;border-radius:10px;text-decoration:none;border:0;font-weight:800;cursor:pointer}.gold{background:#d8aa60;color:#111}.ghost{border:1px solid #444;margin-left:8px;color:#fff}.hero-card,.booking-box,.service{background:#151519;border:1px solid #2b2b31;border-radius:20px}.hero-card{padding:30px}.hero-card h2{font-family:Georgia,serif;font-size:29px}.step{display:flex;gap:15px;padding:14px 0;border-top:1px solid #303036;color:#aaa}.step b{color:#d8aa60}section{padding:75px 8%}.section-head{display:flex;justify-content:space-between;gap:30px;margin-bottom:35px}.section-head h2,.booking-title h2{font:600 42px/1.1 Georgia,serif;margin:8px 0}.section-head p{max-width:450px;color:#999}.services{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.service{padding:25px}.service .icon{font-size:30px;color:#d8aa60}.service h3{margin-bottom:7px}.service p{color:#999;min-height:45px}.price{color:#d8aa60;font-weight:800;font-size:18px}.dark{background:#111113}.benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.benefits div{border-top:1px solid #34343a;padding-top:15px}.benefits b{color:#d8aa60}.benefits p{color:#999}.booking-box{max-width:1000px;margin:auto;padding:35px}.booking-title{text-align:center;margin-bottom:30px}.booking-title p{color:#999}.form{display:grid;grid-template-columns:1fr 1fr;gap:17px}label{font-size:13px;color:#ccc}input,select,textarea{display:block;width:100%;margin-top:7px;padding:14px;background:#0c0c0f;color:#fff;border:1px solid #36363d;border-radius:10px;font:inherit}textarea{min-height:100px;resize:vertical}.wide{grid-column:1/-1}.slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.slot{padding:10px 13px;border-radius:9px;border:1px solid #37373f;background:#0c0c10;color:#eee;cursor:pointer}.slot.active{background:#d8aa60;color:#111;border-color:#d8aa60}.slot.booked{opacity:.3;text-decoration:line-through;cursor:not-allowed}.success{margin-top:20px;padding:20px;border-radius:12px;background:#142017;border:1px solid #345e3a;color:#d9f2db}.success strong{display:block;font-size:22px;color:#d8aa60}.error{margin-top:15px;color:#ffb1a8}.hidden{display:none}footer{padding:35px 8%;border-top:1px solid #28282e;color:#999;display:flex;justify-content:space-between}
+@media(max-width:800px){.hero{grid-template-columns:1fr}.services{grid-template-columns:1fr 1fr}.benefits{grid-template-columns:1fr 1fr}.section-head{display:block}.form{grid-template-columns:1fr}.wide{grid-column:auto}}@media(max-width:520px){.nav{gap:12px}.nav a:not(.brand){font-size:12px}.hero{padding:65px 6%}.hero h1{font-size:58px}section{padding:60px 6%}.services,.benefits{grid-template-columns:1fr}.booking-box{padding:20px}.section-head h2,.booking-title h2{font-size:34px}footer{display:block}}
+</style>
+</head>
+<body>
+<nav class="nav"><a class="brand">STYLE<span>SPOT</span></a><a href="#services">Services</a><a href="#why">Why Us</a><a href="#booking" class="goldtext">Book Now</a></nav>
+<header class="hero"><div><div class="eyebrow">PREMIUM GROOMING • EASY BOOKING</div><h1>Your time.<br><em>Your style.</em></h1><p>Book your haircut, beard grooming and salon services before you arrive. No unnecessary waiting — just show up at your selected time.</p><a class="btn gold" href="#booking">Book an appointment</a><a class="btn ghost" href="#services">Explore services</a></div>
+<div class="hero-card"><div class="eyebrow">TODAY'S EXPERIENCE</div><h2>Walk in looking good.<br>Walk out feeling better.</h2><div class="step"><b>01</b> Choose your service</div><div class="step"><b>02</b> Select an available slot</div><div class="step"><b>03</b> Arrive on time</div></div></header>
+
+<section id="services"><div class="section-head"><div><div class="eyebrow">OUR SERVICES</div><h2>Grooming, made simple.</h2></div><p>Professional services with transparent sample pricing.</p></div>
+<div class="services">
+<div class="service"><div class="icon">✂</div><h3>Signature Haircut</h3><p>Classic, modern or custom haircut.</p><b class="price">₹150</b></div>
+<div class="service"><div class="icon">◒</div><h3>Beard Grooming</h3><p>Trim, shape and clean beard styling.</p><b class="price">₹100</b></div>
+<div class="service"><div class="icon">✦</div><h3>Hair + Beard</h3><p>Complete grooming in one visit.</p><b class="price">₹220</b></div>
+<div class="service"><div class="icon">◈</div><h3>Hair Spa</h3><p>Relaxing hair-care treatment.</p><b class="price">₹350</b></div>
+<div class="service"><div class="icon">◎</div><h3>Head Massage</h3><p>Short relaxing scalp massage.</p><b class="price">₹120</b></div>
+<div class="service"><div class="icon">⌁</div><h3>Kids Haircut</h3><p>Comfortable grooming for children.</p><b class="price">₹120</b></div>
+</div></section>
+
+<section id="why" class="dark"><div class="eyebrow">WHY BOOK ONLINE?</div><h2 style="font:600 42px Georgia,serif">Less waiting. Better planning.</h2><div class="benefits"><div><b>01</b><h3>Live availability</h3><p>Booked slots can be blocked automatically in the live version.</p></div><div><b>02</b><h3>Instant confirmation</h3><p>Get your booking number after a successful appointment.</p></div><div><b>03</b><h3>Barber sees it too</h3><p>The same booking can appear on the barber dashboard.</p></div><div><b>04</b><h3>Special requests</h3><p>Add notes like low fade or beard shape.</p></div></div></section>
+
+<section id="booking"><div class="booking-box"><div class="booking-title"><div class="eyebrow">RESERVE YOUR SLOT</div><h2>Book your appointment</h2><p>Select a date to see the available time slots.</p></div>
+<form class="form" id="form">
+<label>Full name<input id="name" required placeholder="Enter your name"></label>
+<label>Phone number<input id="phone" required type="tel" placeholder="10-digit mobile number"></label>
+<label>Service<select id="service" required><option value="">Select a service</option><option>Signature Haircut — ₹150</option><option>Beard Grooming — ₹100</option><option>Hair + Beard — ₹220</option><option>Hair Spa — ₹350</option><option>Head Massage — ₹120</option><option>Kids Haircut — ₹120</option></select></label>
+<label>Date<input id="date" required type="date"></label>
+<div class="wide"><label>Available time</label><div id="slots" class="slots"></div><input id="time" type="hidden"></div>
+<div class="wide"><label>Special request <small>Optional</small><textarea id="notes" placeholder="Example: low fade, beard shape, etc."></textarea></label></div>
+<button class="btn gold wide" type="submit">Confirm appointment</button></form><div id="msg"></div></div></section>
+<footer><div><b>STYLE<span>SPOT</span></b><p>Smart booking for modern grooming.</p></div><div>Customer Website • Book • Select slot • Get confirmation</div></footer>
+
+<script>
+const $=id=>document.getElementById(id);
+let now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());let today=now.toISOString().slice(0,10);$("date").min=today;$("date").value=today;
+
+async function loadSlots(){
+$("time").value="";
+$("slots").innerHTML="<p style='color:#888'>Loading slots…</p>";
+try{
+let res=await fetch("/api/slots?date="+encodeURIComponent($("date").value));
+let data=await res.json();
+$("slots").innerHTML="";
+data.slots.forEach(t=>{
+let b=document.createElement("button");
+b.type="button";b.className="slot";b.textContent=t;
+if(data.booked.includes(t)){b.disabled=true;b.classList.add("booked")}
+b.onclick=()=>{document.querySelectorAll(".slot").forEach(s=>s.classList.remove("active"));b.classList.add("active");$("time").value=t};
+$("slots").appendChild(b);
+});
+}catch(err){
+$("slots").innerHTML="<p class='error'>Could not load slots. Make sure the server is running.</p>";
+}
+}
+$("date").onchange=loadSlots;
+loadSlots();
+
+$("form").onsubmit=async e=>{
+e.preventDefault();
+let t=$("time").value;
+if(!t)return alert("Please select an available time slot.");
+let payload={name:$("name").value,phone:$("phone").value,service:$("service").value,date:$("date").value,time:t,notes:$("notes").value};
+let submitBtn=$("form").querySelector("button[type=submit]");
+submitBtn.disabled=true;
+try{
+let res=await fetch("/api/book",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+let data=await res.json();
+if(!res.ok){
+if(res.status===409){alert("That slot has just been booked. Please choose another.");loadSlots();}
+else{alert(data.error||"Something went wrong. Please try again.");}
+return;
+}
+$("msg").className="success";
+$("msg").innerHTML="<b>Appointment confirmed</b><strong>"+data.bookingNo+"</strong><p>"+data.name+", your "+data.service+" appointment is booked for <b>"+data.date+"</b> at <b>"+data.time+"</b>.</p>";
+$("form").reset();$("date").value=today;$("time").value="";
+loadSlots();
+}catch(err){
+alert("Could not reach the server. Make sure it's running, then try again.");
+}finally{
+submitBtn.disabled=false;
+}
+};
+</script></body></html>
