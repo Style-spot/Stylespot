@@ -1,680 +1,566 @@
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
-const { Pool } = require("pg");
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StyleSpot Barber Dashboard</title>
 
-const PORT = process.env.PORT || 3000;
-const PUBLIC = __dirname;
+<style>
+*{box-sizing:border-box}
 
-if (!process.env.DATABASE_URL) {
-  console.error("DATABASE_URL is missing");
+body{
+  margin:0;
+  background:#0b0b0d;
+  color:#eee;
+  font-family:Arial,system-ui,sans-serif;
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL
-    ? { rejectUnauthorized: false }
-    : false
-});
-
-const SLOTS = [
-  "09:00 AM","09:30 AM","10:00 AM","10:30 AM",
-  "11:00 AM","11:30 AM","12:00 PM","12:30 PM",
-  "01:00 PM","01:30 PM","02:00 PM","02:30 PM",
-  "03:00 PM","03:30 PM","04:00 PM","04:30 PM",
-  "05:00 PM","05:30 PM","06:00 PM","06:30 PM",
-  "07:00 PM","07:30 PM","08:00 PM","08:30 PM"
-];
-
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id UUID PRIMARY KEY,
-      name TEXT NOT NULL,
-      phone TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS bookings (
-      id UUID PRIMARY KEY,
-      booking_no TEXT UNIQUE NOT NULL,
-      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-      name TEXT NOT NULL,
-      phone TEXT NOT NULL,
-      service TEXT NOT NULL,
-      date DATE NOT NULL,
-      time TEXT NOT NULL,
-      notes TEXT DEFAULT '',
-      status TEXT DEFAULT 'Pending',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS sessions (
-      token TEXT PRIMARY KEY,
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
-
-  /*
-    Existing databases may already have status DEFAULT 'Booked'.
-    We explicitly set the default to Pending so future bookings
-    start as Pending.
-  */
-  await pool.query(`
-    ALTER TABLE bookings
-    ALTER COLUMN status SET DEFAULT 'Pending'
-  `);
-
-  console.log("Database ready");
+.nav{
+  height:74px;
+  padding:0 6%;
+  display:flex;
+  align-items:center;
+  border-bottom:1px solid #29292f;
 }
 
-function send(res, code, data, type = "application/json") {
-  res.writeHead(code, {
-    "Content-Type": type,
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS"
-  });
-
-  res.end(
-    type.includes("json")
-      ? JSON.stringify(data)
-      : data
-  );
+.brand{
+  font-weight:800;
+  font-size:20px;
+  margin-right:auto;
 }
 
-function body(req) {
-  return new Promise((resolve, reject) => {
-    let b = "";
-
-    req.on("data", chunk => {
-      b += chunk;
-    });
-
-    req.on("end", () => {
-      try {
-        resolve(JSON.parse(b || "{}"));
-      } catch {
-        reject(new Error("Invalid JSON"));
-      }
-    });
-  });
+.brand span{
+  color:#d8aa60;
 }
 
-function hashPassword(password) {
-  return new Promise((resolve, reject) => {
-    const salt = crypto.randomBytes(16).toString("hex");
-
-    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
-      if (err) return reject(err);
-
-      resolve(
-        `${salt}:${derivedKey.toString("hex")}`
-      );
-    });
-  });
+.nav a{
+  color:#ddd;
+  text-decoration:none;
 }
 
-function verifyPassword(password, stored) {
-  return new Promise((resolve, reject) => {
-    const [salt, key] = stored.split(":");
-
-    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
-      if (err) return reject(err);
-
-      const storedKey = Buffer.from(key, "hex");
-
-      const isValid =
-        storedKey.length === derivedKey.length &&
-        crypto.timingSafeEqual(
-          storedKey,
-          derivedKey
-        );
-
-      resolve(isValid);
-    });
-  });
+.dash{
+  max-width:1150px;
+  margin:auto;
+  padding:60px 6%;
 }
 
-function getToken(req) {
-  const header =
-    req.headers.authorization || "";
+.ey{
+  font-size:12px;
+  letter-spacing:2px;
+  color:#d8aa60;
+  font-weight:800;
+}
 
-  if (!header.startsWith("Bearer ")) {
-    return null;
+.head{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+}
+
+.head h1{
+  font:600 48px Georgia,serif;
+  margin:8px 0;
+}
+
+.muted{
+  color:#999;
+}
+
+.btn{
+  padding:12px 18px;
+  border:0;
+  border-radius:9px;
+  background:#d8aa60;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin:28px 0;
+}
+
+.stats div{
+  background:#151519;
+  border:1px solid #2b2b31;
+  border-radius:14px;
+  padding:20px;
+}
+
+.stats b{
+  display:block;
+  font-size:30px;
+  color:#d8aa60;
+}
+
+.stats span{
+  color:#999;
+}
+
+.filters{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-bottom:18px;
+}
+
+input,select{
+  width:100%;
+  padding:13px;
+  background:#0d0d10;
+  color:#eee;
+  border:1px solid #36363d;
+  border-radius:9px;
+  margin-top:6px;
+}
+
+.appointment{
+  display:grid;
+  grid-template-columns:140px 1fr 180px;
+  gap:20px;
+  align-items:center;
+  padding:20px;
+  margin:10px 0;
+  background:#151519;
+  border:1px solid #2b2b31;
+  border-radius:14px;
+}
+
+.time{
+  color:#d8aa60;
+  font-weight:800;
+}
+
+.time small{
+  display:block;
+  color:#777;
+  margin-top:4px;
+}
+
+.appointment h3{
+  margin:0;
+}
+
+.appointment p{
+  color:#bbb;
+}
+
+.actions{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.action{
+  width:100%;
+  padding:10px;
+  border:0;
+  border-radius:8px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.confirm{
+  background:#d8aa60;
+  color:#111;
+}
+
+.reject{
+  background:#29292f;
+  color:#ffb1a8;
+  border:1px solid #4a3030;
+}
+
+.complete{
+  background:#263b2b;
+  color:#cdebd2;
+}
+
+.cancel{
+  background:#29292f;
+  color:#ddd;
+}
+
+.status{
+  display:inline-block;
+  margin-top:8px;
+  padding:5px 9px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:800;
+}
+
+.pending{
+  background:#3a301f;
+  color:#d8aa60;
+}
+
+.confirmed{
+  background:#203725;
+  color:#bfe8c6;
+}
+
+.completed{
+  background:#263d45;
+  color:#bde4ef;
+}
+
+.cancelled,.rejected{
+  background:#3b2525;
+  color:#ffb1a8;
+}
+
+.empty{
+  text-align:center;
+  padding:40px;
+  color:#888;
+  border:1px dashed #333;
+}
+
+@media(max-width:700px){
+  .appointment,
+  .filters{
+    grid-template-columns:1fr;
   }
 
-  return header.slice(7);
-}
-
-async function getUser(req) {
-  const token = getToken(req);
-
-  if (!token) {
-    return null;
+  .head{
+    align-items:start;
+    gap:15px;
+    flex-direction:column;
   }
 
-  const result = await pool.query(
-    `SELECT users.id, users.name, users.phone
-     FROM sessions
-     JOIN users
-       ON users.id = sessions.user_id
-     WHERE sessions.token = $1`,
-    [token]
-  );
-
-  return result.rows[0] || null;
-}
-
-const server = http.createServer(
-  async (req, res) => {
-
-    try {
-
-      if (req.method === "OPTIONS") {
-        return send(res, 204, "");
-      }
-
-      const u = new URL(
-        req.url,
-        `http://${req.headers.host}`
-      );
-
-
-      // =========================
-      // SIGN UP
-      // =========================
-
-      if (
-        req.method === "POST" &&
-        u.pathname === "/api/signup"
-      ) {
-
-        const x = await body(req);
-
-        if (!x.name || !x.phone || !x.password) {
-          return send(res, 400, {
-            error:
-              "Name, phone and password are required"
-          });
-        }
-
-        if (x.password.length < 6) {
-          return send(res, 400, {
-            error:
-              "Password must be at least 6 characters"
-          });
-        }
-
-        const existing = await pool.query(
-          "SELECT id FROM users WHERE phone = $1",
-          [x.phone]
-        );
-
-        if (existing.rows.length) {
-          return send(res, 409, {
-            error:
-              "An account with this phone number already exists"
-          });
-        }
-
-        const id = crypto.randomUUID();
-
-        const passwordHash =
-          await hashPassword(x.password);
-
-        await pool.query(
-          `INSERT INTO users
-           (id, name, phone, password_hash)
-           VALUES ($1, $2, $3, $4)`,
-          [
-            id,
-            x.name,
-            x.phone,
-            passwordHash
-          ]
-        );
-
-        return send(res, 201, {
-          message:
-            "Account created successfully"
-        });
-      }
-
-
-      // =========================
-      // LOGIN
-      // =========================
-
-      if (
-        req.method === "POST" &&
-        u.pathname === "/api/login"
-      ) {
-
-        const x = await body(req);
-
-        if (!x.phone || !x.password) {
-          return send(res, 400, {
-            error:
-              "Phone and password are required"
-          });
-        }
-
-        const result = await pool.query(
-          "SELECT * FROM users WHERE phone = $1",
-          [x.phone]
-        );
-
-        if (!result.rows.length) {
-          return send(res, 401, {
-            error:
-              "Invalid phone number or password"
-          });
-        }
-
-        const user = result.rows[0];
-
-        const valid =
-          await verifyPassword(
-            x.password,
-            user.password_hash
-          );
-
-        if (!valid) {
-          return send(res, 401, {
-            error:
-              "Invalid phone number or password"
-          });
-        }
-
-        const token =
-          crypto.randomBytes(32).toString("hex");
-
-        await pool.query(
-          `INSERT INTO sessions
-           (token, user_id)
-           VALUES ($1, $2)`,
-          [token, user.id]
-        );
-
-        return send(res, 200, {
-          message: "Login successful",
-          token,
-          user: {
-            id: user.id,
-            name: user.name,
-            phone: user.phone
-          }
-        });
-      }
-
-
-      // =========================
-      // CURRENT USER
-      // =========================
-
-      if (
-        req.method === "GET" &&
-        u.pathname === "/api/me"
-      ) {
-
-        const user = await getUser(req);
-
-        if (!user) {
-          return send(res, 401, {
-            error: "Not logged in"
-          });
-        }
-
-        return send(res, 200, {
-          user
-        });
-      }
-
-
-      // =========================
-      // LOGOUT
-      // =========================
-
-      if (
-        req.method === "POST" &&
-        u.pathname === "/api/logout"
-      ) {
-
-        const token = getToken(req);
-
-        if (token) {
-          await pool.query(
-            "DELETE FROM sessions WHERE token = $1",
-            [token]
-          );
-        }
-
-        return send(res, 200, {
-          message: "Logged out"
-        });
-      }
-
-
-      // =========================
-      // AVAILABLE SLOTS
-      // =========================
-
-      if (
-        req.method === "GET" &&
-        u.pathname === "/api/slots"
-      ) {
-
-        const date =
-          u.searchParams.get("date");
-
-        const result = await pool.query(
-          `SELECT time
-           FROM bookings
-           WHERE date = $1
-           AND status != 'Cancelled'
-           AND status != 'Rejected'`,
-          [date]
-        );
-
-        return send(res, 200, {
-          slots: SLOTS,
-          booked:
-            result.rows.map(x => x.time)
-        });
-      }
-
-
-      // =========================
-      // CREATE BOOKING
-      // =========================
-
-      if (
-        req.method === "POST" &&
-        u.pathname === "/api/book"
-      ) {
-
-        const x = await body(req);
-
-        const user = await getUser(req);
-
-        if (
-          !x.name ||
-          !x.phone ||
-          !x.service ||
-          !x.date ||
-          !x.time
-        ) {
-          return send(res, 400, {
-            error:
-              "Fill all required fields"
-          });
-        }
-
-        const existing = await pool.query(
-          `SELECT id
-           FROM bookings
-           WHERE date = $1
-           AND time = $2
-           AND status != 'Cancelled'
-           AND status != 'Rejected'`,
-          [
-            x.date,
-            x.time
-          ]
-        );
-
-        if (existing.rows.length) {
-          return send(res, 409, {
-            error:
-              "Slot already booked"
-          });
-        }
-
-        const id =
-          crypto.randomUUID();
-
-        const bookingNo =
-          "SS-" +
-          Math.floor(
-            100000 +
-            Math.random() * 900000
-          );
-
-        const result = await pool.query(
-          `INSERT INTO bookings
-           (
-             id,
-             booking_no,
-             user_id,
-             name,
-             phone,
-             service,
-             date,
-             time,
-             notes,
-             status
-           )
-           VALUES
-           ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-           RETURNING *`,
-          [
-            id,
-            bookingNo,
-            user ? user.id : null,
-            x.name,
-            x.phone,
-            x.service,
-            x.date,
-            x.time,
-            x.notes || "",
-            "Pending"
-          ]
-        );
-
-        return send(res, 201, {
-          ...result.rows[0],
-          message:
-            "Booking request submitted. Waiting for salon confirmation."
-        });
-      }
-
-
-      // =========================
-      // ALL BOOKINGS - BARBER
-      // =========================
-
-      if (
-        req.method === "GET" &&
-        u.pathname === "/api/bookings"
-      ) {
-
-        const result = await pool.query(
-          "SELECT * FROM bookings ORDER BY date, time"
-        );
-
-        return send(
-          res,
-          200,
-          result.rows
-        );
-      }
-
-
-      // =========================
-      // MY BOOKINGS
-      // =========================
-
-      if (
-        req.method === "GET" &&
-        u.pathname === "/api/my-bookings"
-      ) {
-
-        const user = await getUser(req);
-
-        if (!user) {
-          return send(res, 401, {
-            error:
-              "Please login first"
-          });
-        }
-
-        const result = await pool.query(
-          `SELECT *
-           FROM bookings
-           WHERE user_id = $1
-           ORDER BY date DESC, time DESC`,
-          [user.id]
-        );
-
-        return send(
-          res,
-          200,
-          result.rows
-        );
-      }
-
-
-      // =========================
-      // UPDATE BOOKING
-      // =========================
-
-      if (
-        req.method === "PATCH" &&
-        u.pathname.startsWith("/api/bookings/")
-      ) {
-
-        const id =
-          u.pathname.split("/").pop();
-
-        const x = await body(req);
-
-        const allowedStatuses = [
-          "Pending",
-          "Confirmed",
-          "Completed",
-          "Cancelled",
-          "Rejected"
-        ];
-
-        if (
-          x.status &&
-          !allowedStatuses.includes(x.status)
-        ) {
-          return send(res, 400, {
-            error:
-              "Invalid booking status"
-          });
-        }
-
-        const result = await pool.query(
-          `UPDATE bookings
-           SET status =
-             COALESCE($1, status)
-           WHERE id = $2
-           RETURNING *`,
-          [
-            x.status || null,
-            id
-          ]
-        );
-
-        if (!result.rows.length) {
-          return send(res, 404, {
-            error: "Not found"
-          });
-        }
-
-        return send(
-          res,
-          200,
-          result.rows[0]
-        );
-      }
-
-
-      // =========================
-      // STATIC FILES
-      // =========================
-
-      let file =
-        u.pathname === "/"
-          ? "customer.html"
-          : u.pathname.slice(1);
-
-      const full =
-        path.join(
-          PUBLIC,
-          file
-        );
-
-      fs.readFile(
-        full,
-        (err, data) => {
-
-          if (err) {
-            return send(
-              res,
-              404,
-              "Not found",
-              "text/plain"
-            );
-          }
-
-          const ext =
-            path.extname(full);
-
-          const types = {
-            ".html": "text/html",
-            ".css": "text/css",
-            ".js": "text/javascript"
-          };
-
-          send(
-            res,
-            200,
-            data,
-            types[ext] ||
-              "application/octet-stream"
-          );
-        }
-      );
-
-    } catch (err) {
-
-      console.error(err);
-
-      send(res, 500, {
-        error:
-          "Server error"
-      });
-    }
+  .stats{
+    grid-template-columns:1fr 1fr;
   }
+}
+</style>
+</head>
+
+<body>
+
+<nav class="nav">
+  <div class="brand">STYLE<span>SPOT</span> BARBER</div>
+  <a href="customer.html">Customer Website ↗</a>
+</nav>
+
+<main class="dash">
+
+  <div class="head">
+    <div>
+      <div class="ey">PRIVATE SALON DASHBOARD</div>
+      <h1>Appointments</h1>
+      <p class="muted">
+        Customer booking requests appear here.
+      </p>
+    </div>
+
+    <button class="btn" onclick="load()">
+      Refresh
+    </button>
+  </div>
+
+  <div id="stats" class="stats"></div>
+
+  <div class="filters">
+    <label>
+      Date
+      <input id="date" type="date">
+    </label>
+
+    <label>
+      Status
+      <select id="status">
+        <option value="">All</option>
+        <option>Pending</option>
+        <option>Confirmed</option>
+        <option>Completed</option>
+        <option>Cancelled</option>
+        <option>Rejected</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="list"></div>
+
+</main>
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+let d = new Date();
+
+d.setMinutes(
+  d.getMinutes() -
+  d.getTimezoneOffset()
 );
 
+$("date").value =
+  d.toISOString().slice(0,10);
 
-initDB()
-  .then(() => {
 
-    server.listen(
-      PORT,
-      () => {
-        console.log(
-          `StyleSpot running on port ${PORT}`
-        );
-      }
-    );
+async function load(){
 
-  })
-  .catch(err => {
+  try{
 
-    console.error(
-      "Database initialization failed:",
-      err
-    );
+    const response =
+      await fetch("/api/bookings");
 
-    process.exit(1);
+    const all =
+      await response.json();
+
+    if(!Array.isArray(all)){
+      throw new Error("Invalid booking data");
+    }
+
+    const selectedDate =
+      $("date").value;
+
+    const selectedStatus =
+      $("status").value;
+
+    const bookings =
+      all.filter(x => {
+
+        const dateMatch =
+          !selectedDate ||
+          String(x.date).slice(0,10) === selectedDate;
+
+        const statusMatch =
+          !selectedStatus ||
+          x.status === selectedStatus;
+
+        return dateMatch && statusMatch;
+      });
+
+
+    const statuses = [
+      "Pending",
+      "Confirmed",
+      "Completed",
+      "Cancelled"
+    ];
+
+    $("stats").innerHTML =
+      statuses.map(status => {
+
+        const count =
+          bookings.filter(
+            x => x.status === status
+          ).length;
+
+        return `
+          <div>
+            <b>${count}</b>
+            <span>${status}</span>
+          </div>
+        `;
+
+      }).join("");
+
+
+    if(!bookings.length){
+
+      $("list").innerHTML =
+        "<div class='empty'>No appointments.</div>";
+
+      return;
+    }
+
+
+    $("list").innerHTML =
+      bookings.map(x => {
+
+        const status =
+          x.status || "Pending";
+
+        let buttons = "";
+
+
+        if(status === "Pending"){
+
+          buttons = `
+            <button
+              class="action confirm"
+              onclick="changeStatus('${x.id}','Confirmed')">
+              ✓ Accept Booking
+            </button>
+
+            <button
+              class="action reject"
+              onclick="changeStatus('${x.id}','Rejected')">
+              ✕ Reject Booking
+            </button>
+          `;
+
+        }
+
+
+        else if(status === "Confirmed"){
+
+          buttons = `
+            <button
+              class="action complete"
+              onclick="changeStatus('${x.id}','Completed')">
+              ✓ Mark Completed
+            </button>
+
+            <button
+              class="action cancel"
+              onclick="changeStatus('${x.id}','Cancelled')">
+              Cancel
+            </button>
+          `;
+
+        }
+
+
+        else if(status === "Completed"){
+
+          buttons = `
+            <div class="muted">
+              Appointment completed
+            </div>
+          `;
+
+        }
+
+
+        else if(
+          status === "Cancelled" ||
+          status === "Rejected"
+        ){
+
+          buttons = `
+            <div class="muted">
+              ${status}
+            </div>
+          `;
+
+        }
+
+
+        return `
+          <article class="appointment">
+
+            <div class="time">
+              ${x.time}
+              <small>${x.booking_no}</small>
+            </div>
+
+            <div>
+
+              <h3>${escapeHtml(x.name)}</h3>
+
+              <p>
+                ${escapeHtml(x.service)}
+              </p>
+
+              <small>
+                📞 ${escapeHtml(x.phone)}
+                ${
+                  x.notes
+                    ? " • 📝 " +
+                      escapeHtml(x.notes)
+                    : ""
+                }
+              </small>
+
+              <br>
+
+              <span class="status ${status.toLowerCase()}">
+                ${status}
+              </span>
+
+            </div>
+
+            <div class="actions">
+              ${buttons}
+            </div>
+
+          </article>
+        `;
+
+      }).join("");
+
   }
+
+  catch(error){
+
+    console.error(error);
+
+    $("list").innerHTML =
+      "<div class='empty'>Could not load appointments. Please refresh.</div>";
+  }
+}
+
+
+async function changeStatus(id,status){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/bookings/" + id,
+        {
+          method:"PATCH",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            status:status
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Could not update booking."
+      );
+
+      return;
+    }
+
+    await load();
+
+  }
+
+  catch(error){
+
+    alert(
+      "Could not connect to server."
+    );
+  }
+}
+
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+
+$("date").onchange = load;
+
+$("status").onchange = load;
+
+load();
+
+setInterval(load,15000);
+
+</script>
+
+</body>
+</html>
