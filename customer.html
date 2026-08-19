@@ -856,17 +856,8 @@ return;
 }
 
 $("msg").className="success";
+$("msg").innerHTML="<b>Booking request submitted</b><strong>"+data.bookingNo+"</strong><p>"+data.name+", your "+data.service+" booking request is <b>Pending</b> and is waiting for salon confirmation for <b>"+data.date+"</b> at <b>"+data.time+"</b>.</p>";
 
-$("msg").innerHTML=
-"<b>Appointment confirmed</b>"+
-"<strong>"+escapeHTML(data.booking_no)+"</strong>"+
-"<p>"+escapeHTML(data.name)+
-", your "+escapeHTML(data.service)+
-" appointment is booked for <b>"+
-escapeHTML(String(data.date))+
-"</b> at <b>"+
-escapeHTML(data.time)+
-"</b>.</p>";
 
 $("form").reset();
 
