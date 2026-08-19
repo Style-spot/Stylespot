@@ -1,6 +1,335 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StyleSpot Barber Dashboard</title><style>
-*{box-sizing:border-box}body{margin:0;background:#0b0b0d;color:#eee;font-family:Arial,system-ui}.nav{height:74px;padding:0 6%;display:flex;align-items:center;border-bottom:1px solid #29292f}.brand{font-weight:800;font-size:20px;margin-right:auto}.brand span{color:#d8aa60}.nav a{color:#ddd;text-decoration:none}.dash{max-width:1150px;margin:auto;padding:60px 6%}.ey{font-size:12px;letter-spacing:2px;color:#d8aa60;font-weight:800}.head{display:flex;justify-content:space-between;align-items:end}.head h1{font:600 48px Georgia,serif;margin:8px 0}.muted{color:#999}.btn{padding:12px 18px;border:0;border-radius:9px;background:#d8aa60;font-weight:800}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0}.stats div,.appointment{background:#151519;border:1px solid #2b2b31;border-radius:14px}.stats div{padding:20px}.stats b{display:block;font-size:30px;color:#d8aa60}.stats span{color:#999}.filters{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}input,select{width:100%;padding:13px;background:#0d0d10;color:#eee;border:1px solid #36363d;border-radius:9px;margin-top:6px}.appointment{display:grid;grid-template-columns:140px 1fr 170px;gap:20px;align-items:center;padding:20px;margin:10px 0}.time{color:#d8aa60;font-weight:800}.time small{display:block;color:#777;margin-top:4px}.appointment h3{margin:0}.appointment p{color:#bbb}.empty{text-align:center;padding:40px;color:#888;border:1px dashed #333}@media(max-width:700px){.appointment,.filters{grid-template-columns:1fr}.head{align-items:start;gap:15px;flex-direction:column}}
-</style></head><body><nav class="nav"><div class="brand">STYLE<span>SPOT</span> BARBER</div><a href="customer.html">Customer Website ↗</a></nav><main class="dash"><div class="head"><div><div class="ey">PRIVATE SALON DASHBOARD</div><h1>Appointments</h1><p class="muted">Customer bookings appear here.</p></div><button class="btn" onclick="load()">Refresh</button></div><div id="stats" class="stats"></div><div class="filters"><label>Date<input id="date" type="date"></label><label>Status<select id="status"><option value="">All</option><option>Booked</option><option>Completed</option><option>Cancelled</option></select></label></div><div id="list"></div></main><script>
-const $=x=>document.getElementById(x);let d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());$("date").value=d.toISOString().slice(0,10);
-async function load(){try{let a=await(await fetch("/api/bookings")).json(),b=a.filter(x=>(!$("date").value||x.date===$("date").value)&&(!$("status").value||x.status===$("status").value));$("stats").innerHTML=["Booked","Completed","Cancelled"].map(s=>`<div><b>${b.filter(x=>x.status===s).length}</b><span>${s}</span></div>`).join("");$("list").innerHTML=b.length?b.map(x=>`<article class="appointment"><div class="time">${x.time}<small>${x.bookingNo}</small></div><div><h3>${x.name}</h3><p>${x.service}</p><small>📞 ${x.phone}${x.notes?" • 📝 "+x.notes:""}</small></div><select onchange="change('${x.id}',this.value)"><option ${x.status==="Booked"?"selected":""}>Booked</option><option ${x.status==="Completed"?"selected":""}>Completed</option><option ${x.status==="Cancelled"?"selected":""}>Cancelled</option></select></article>`).join(""):"<div class='empty'>No appointments.</div>"}catch(e){$("list").innerHTML="<div class='empty'>Start the live server to load shared bookings.</div>"}}async function change(id,status){await fetch("/api/bookings/"+id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});load()}$("date").onchange=load;$("status").onchange=load;load();setInterval(load,15000);
-</script></body></html>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StyleSpot Barber Dashboard</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0b0d;color:#eee;font-family:Arial,system-ui}
+
+.nav{
+  height:74px;
+  padding:0 6%;
+  display:flex;
+  align-items:center;
+  border-bottom:1px solid #29292f
+}
+
+.brand{
+  font-weight:800;
+  font-size:20px;
+  margin-right:auto
+}
+
+.brand span{color:#d8aa60}
+
+.nav a{
+  color:#ddd;
+  text-decoration:none
+}
+
+.dash{
+  max-width:1150px;
+  margin:auto;
+  padding:60px 6%
+}
+
+.ey{
+  font-size:12px;
+  letter-spacing:2px;
+  color:#d8aa60;
+  font-weight:800
+}
+
+.head{
+  display:flex;
+  justify-content:space-between;
+  align-items:end
+}
+
+.head h1{
+  font:600 48px Georgia,serif;
+  margin:8px 0
+}
+
+.muted{color:#999}
+
+.btn{
+  padding:12px 18px;
+  border:0;
+  border-radius:9px;
+  background:#d8aa60;
+  font-weight:800;
+  cursor:pointer
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin:28px 0
+}
+
+.stats div,.appointment{
+  background:#151519;
+  border:1px solid #2b2b31;
+  border-radius:14px
+}
+
+.stats div{padding:20px}
+
+.stats b{
+  display:block;
+  font-size:30px;
+  color:#d8aa60
+}
+
+.stats span{color:#999}
+
+.filters{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-bottom:18px
+}
+
+input,select{
+  width:100%;
+  padding:13px;
+  background:#0d0d10;
+  color:#eee;
+  border:1px solid #36363d;
+  border-radius:9px;
+  margin-top:6px
+}
+
+.appointment{
+  display:grid;
+  grid-template-columns:140px 1fr 170px;
+  gap:20px;
+  align-items:center;
+  padding:20px;
+  margin:10px 0
+}
+
+.time{
+  color:#d8aa60;
+  font-weight:800
+}
+
+.time small{
+  display:block;
+  color:#777;
+  margin-top:4px
+}
+
+.appointment h3{margin:0}
+
+.appointment p{color:#bbb}
+
+.empty{
+  text-align:center;
+  padding:40px;
+  color:#888;
+  border:1px dashed #333
+}
+
+@media(max-width:700px){
+  .appointment,.filters{
+    grid-template-columns:1fr
+  }
+
+  .head{
+    align-items:start;
+    gap:15px;
+    flex-direction:column
+  }
+}
+</style>
+</head>
+
+<body>
+
+<nav class="nav">
+  <div class="brand">STYLE<span>SPOT</span> BARBER</div>
+  <a href="customer.html">Customer Website ↗</a>
+</nav>
+
+<main class="dash">
+
+  <div class="head">
+    <div>
+      <div class="ey">PRIVATE SALON DASHBOARD</div>
+      <h1>Appointments</h1>
+      <p class="muted">Customer bookings appear here.</p>
+    </div>
+
+    <button class="btn" onclick="load()">Refresh</button>
+  </div>
+
+  <div id="stats" class="stats"></div>
+
+  <div class="filters">
+    <label>
+      Date
+      <input id="date" type="date">
+    </label>
+
+    <label>
+      Status
+      <select id="status">
+        <option value="">All</option>
+        <option>Booked</option>
+        <option>Completed</option>
+        <option>Cancelled</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="list"></div>
+
+</main>
+
+<script>
+
+const $ = x => document.getElementById(x);
+
+let d = new Date();
+
+d.setMinutes(
+  d.getMinutes() - d.getTimezoneOffset()
+);
+
+$("date").value = d.toISOString().slice(0,10);
+
+
+async function load(){
+
+  try{
+
+    const response = await fetch("/api/bookings");
+
+    const a = await response.json();
+
+    const selectedDate = $("date").value;
+    const selectedStatus = $("status").value;
+
+    const b = a.filter(x => {
+
+      const bookingDate = String(x.date).slice(0,10);
+
+      const dateMatch =
+        !selectedDate ||
+        bookingDate === selectedDate;
+
+      const statusMatch =
+        !selectedStatus ||
+        x.status === selectedStatus;
+
+      return dateMatch && statusMatch;
+
+    });
+
+
+    $("stats").innerHTML =
+      ["Booked","Completed","Cancelled"]
+      .map(s => `
+        <div>
+          <b>${b.filter(x => x.status === s).length}</b>
+          <span>${s}</span>
+        </div>
+      `)
+      .join("");
+
+
+    $("list").innerHTML = b.length
+
+      ? b.map(x => `
+
+        <article class="appointment">
+
+          <div class="time">
+            ${x.time}
+            <small>${x.booking_no}</small>
+          </div>
+
+          <div>
+            <h3>${x.name}</h3>
+
+            <p>${x.service}</p>
+
+            <small>
+              📞 ${x.phone}
+              ${x.notes ? " • 📝 " + x.notes : ""}
+            </small>
+          </div>
+
+          <select onchange="change('${x.id}',this.value)">
+
+            <option ${x.status==="Booked" ? "selected" : ""}>
+              Booked
+            </option>
+
+            <option ${x.status==="Completed" ? "selected" : ""}>
+              Completed
+            </option>
+
+            <option ${x.status==="Cancelled" ? "selected" : ""}>
+              Cancelled
+            </option>
+
+          </select>
+
+        </article>
+
+      `).join("")
+
+      : "<div class='empty'>No appointments.</div>";
+
+
+  }catch(e){
+
+    $("list").innerHTML =
+      "<div class='empty'>Unable to load appointments.</div>";
+
+  }
+
+}
+
+
+async function change(id,status){
+
+  await fetch(
+    "/api/bookings/" + id,
+    {
+      method:"PATCH",
+
+      headers:{
+        "Content-Type":"application/json"
+      },
+
+      body:JSON.stringify({
+        status:status
+      })
+    }
+  );
+
+  load();
+
+}
+
+
+$("date").onchange = load;
+
+$("status").onchange = load;
+
+load();
+
+setInterval(load,15000);
+
+</script>
+
+</body>
+</html>
