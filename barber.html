@@ -1,335 +1,680 @@
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>StyleSpot Barber Dashboard</title>
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const { Pool } = require("pg");
 
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#0b0b0d;color:#eee;font-family:Arial,system-ui}
+const PORT = process.env.PORT || 3000;
+const PUBLIC = __dirname;
 
-.nav{
-  height:74px;
-  padding:0 6%;
-  display:flex;
-  align-items:center;
-  border-bottom:1px solid #29292f
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is missing");
 }
 
-.brand{
-  font-weight:800;
-  font-size:20px;
-  margin-right:auto
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL
+    ? { rejectUnauthorized: false }
+    : false
+});
+
+const SLOTS = [
+  "09:00 AM","09:30 AM","10:00 AM","10:30 AM",
+  "11:00 AM","11:30 AM","12:00 PM","12:30 PM",
+  "01:00 PM","01:30 PM","02:00 PM","02:30 PM",
+  "03:00 PM","03:30 PM","04:00 PM","04:30 PM",
+  "05:00 PM","05:30 PM","06:00 PM","06:30 PM",
+  "07:00 PM","07:30 PM","08:00 PM","08:30 PM"
+];
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS bookings (
+      id UUID PRIMARY KEY,
+      booking_no TEXT UNIQUE NOT NULL,
+      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      service TEXT NOT NULL,
+      date DATE NOT NULL,
+      time TEXT NOT NULL,
+      notes TEXT DEFAULT '',
+      status TEXT DEFAULT 'Pending',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  /*
+    Existing databases may already have status DEFAULT 'Booked'.
+    We explicitly set the default to Pending so future bookings
+    start as Pending.
+  */
+  await pool.query(`
+    ALTER TABLE bookings
+    ALTER COLUMN status SET DEFAULT 'Pending'
+  `);
+
+  console.log("Database ready");
 }
 
-.brand span{color:#d8aa60}
+function send(res, code, data, type = "application/json") {
+  res.writeHead(code, {
+    "Content-Type": type,
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS"
+  });
 
-.nav a{
-  color:#ddd;
-  text-decoration:none
+  res.end(
+    type.includes("json")
+      ? JSON.stringify(data)
+      : data
+  );
 }
 
-.dash{
-  max-width:1150px;
-  margin:auto;
-  padding:60px 6%
-}
+function body(req) {
+  return new Promise((resolve, reject) => {
+    let b = "";
 
-.ey{
-  font-size:12px;
-  letter-spacing:2px;
-  color:#d8aa60;
-  font-weight:800
-}
-
-.head{
-  display:flex;
-  justify-content:space-between;
-  align-items:end
-}
-
-.head h1{
-  font:600 48px Georgia,serif;
-  margin:8px 0
-}
-
-.muted{color:#999}
-
-.btn{
-  padding:12px 18px;
-  border:0;
-  border-radius:9px;
-  background:#d8aa60;
-  font-weight:800;
-  cursor:pointer
-}
-
-.stats{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:14px;
-  margin:28px 0
-}
-
-.stats div,.appointment{
-  background:#151519;
-  border:1px solid #2b2b31;
-  border-radius:14px
-}
-
-.stats div{padding:20px}
-
-.stats b{
-  display:block;
-  font-size:30px;
-  color:#d8aa60
-}
-
-.stats span{color:#999}
-
-.filters{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-  margin-bottom:18px
-}
-
-input,select{
-  width:100%;
-  padding:13px;
-  background:#0d0d10;
-  color:#eee;
-  border:1px solid #36363d;
-  border-radius:9px;
-  margin-top:6px
-}
-
-.appointment{
-  display:grid;
-  grid-template-columns:140px 1fr 170px;
-  gap:20px;
-  align-items:center;
-  padding:20px;
-  margin:10px 0
-}
-
-.time{
-  color:#d8aa60;
-  font-weight:800
-}
-
-.time small{
-  display:block;
-  color:#777;
-  margin-top:4px
-}
-
-.appointment h3{margin:0}
-
-.appointment p{color:#bbb}
-
-.empty{
-  text-align:center;
-  padding:40px;
-  color:#888;
-  border:1px dashed #333
-}
-
-@media(max-width:700px){
-  .appointment,.filters{
-    grid-template-columns:1fr
-  }
-
-  .head{
-    align-items:start;
-    gap:15px;
-    flex-direction:column
-  }
-}
-</style>
-</head>
-
-<body>
-
-<nav class="nav">
-  <div class="brand">STYLE<span>SPOT</span> BARBER</div>
-  <a href="customer.html">Customer Website ↗</a>
-</nav>
-
-<main class="dash">
-
-  <div class="head">
-    <div>
-      <div class="ey">PRIVATE SALON DASHBOARD</div>
-      <h1>Appointments</h1>
-      <p class="muted">Customer bookings appear here.</p>
-    </div>
-
-    <button class="btn" onclick="load()">Refresh</button>
-  </div>
-
-  <div id="stats" class="stats"></div>
-
-  <div class="filters">
-    <label>
-      Date
-      <input id="date" type="date">
-    </label>
-
-    <label>
-      Status
-      <select id="status">
-        <option value="">All</option>
-        <option>Booked</option>
-        <option>Completed</option>
-        <option>Cancelled</option>
-      </select>
-    </label>
-  </div>
-
-  <div id="list"></div>
-
-</main>
-
-<script>
-
-const $ = x => document.getElementById(x);
-
-let d = new Date();
-
-d.setMinutes(
-  d.getMinutes() - d.getTimezoneOffset()
-);
-
-$("date").value = d.toISOString().slice(0,10);
-
-
-async function load(){
-
-  try{
-
-    const response = await fetch("/api/bookings");
-
-    const a = await response.json();
-
-    const selectedDate = $("date").value;
-    const selectedStatus = $("status").value;
-
-    const b = a.filter(x => {
-
-      const bookingDate = String(x.date).slice(0,10);
-
-      const dateMatch =
-        !selectedDate ||
-        bookingDate === selectedDate;
-
-      const statusMatch =
-        !selectedStatus ||
-        x.status === selectedStatus;
-
-      return dateMatch && statusMatch;
-
+    req.on("data", chunk => {
+      b += chunk;
     });
 
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(b || "{}"));
+      } catch {
+        reject(new Error("Invalid JSON"));
+      }
+    });
+  });
+}
 
-    $("stats").innerHTML =
-      ["Booked","Completed","Cancelled"]
-      .map(s => `
-        <div>
-          <b>${b.filter(x => x.status === s).length}</b>
-          <span>${s}</span>
-        </div>
-      `)
-      .join("");
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = crypto.randomBytes(16).toString("hex");
 
+    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+      if (err) return reject(err);
 
-    $("list").innerHTML = b.length
+      resolve(
+        `${salt}:${derivedKey.toString("hex")}`
+      );
+    });
+  });
+}
 
-      ? b.map(x => `
+function verifyPassword(password, stored) {
+  return new Promise((resolve, reject) => {
+    const [salt, key] = stored.split(":");
 
-        <article class="appointment">
+    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+      if (err) return reject(err);
 
-          <div class="time">
-            ${x.time}
-            <small>${x.booking_no}</small>
-          </div>
+      const storedKey = Buffer.from(key, "hex");
 
-          <div>
-            <h3>${x.name}</h3>
+      const isValid =
+        storedKey.length === derivedKey.length &&
+        crypto.timingSafeEqual(
+          storedKey,
+          derivedKey
+        );
 
-            <p>${x.service}</p>
+      resolve(isValid);
+    });
+  });
+}
 
-            <small>
-              📞 ${x.phone}
-              ${x.notes ? " • 📝 " + x.notes : ""}
-            </small>
-          </div>
+function getToken(req) {
+  const header =
+    req.headers.authorization || "";
 
-          <select onchange="change('${x.id}',this.value)">
-
-            <option ${x.status==="Booked" ? "selected" : ""}>
-              Booked
-            </option>
-
-            <option ${x.status==="Completed" ? "selected" : ""}>
-              Completed
-            </option>
-
-            <option ${x.status==="Cancelled" ? "selected" : ""}>
-              Cancelled
-            </option>
-
-          </select>
-
-        </article>
-
-      `).join("")
-
-      : "<div class='empty'>No appointments.</div>";
-
-
-  }catch(e){
-
-    $("list").innerHTML =
-      "<div class='empty'>Unable to load appointments.</div>";
-
+  if (!header.startsWith("Bearer ")) {
+    return null;
   }
 
+  return header.slice(7);
 }
 
+async function getUser(req) {
+  const token = getToken(req);
 
-async function change(id,status){
+  if (!token) {
+    return null;
+  }
 
-  await fetch(
-    "/api/bookings/" + id,
-    {
-      method:"PATCH",
-
-      headers:{
-        "Content-Type":"application/json"
-      },
-
-      body:JSON.stringify({
-        status:status
-      })
-    }
+  const result = await pool.query(
+    `SELECT users.id, users.name, users.phone
+     FROM sessions
+     JOIN users
+       ON users.id = sessions.user_id
+     WHERE sessions.token = $1`,
+    [token]
   );
 
-  load();
-
+  return result.rows[0] || null;
 }
 
+const server = http.createServer(
+  async (req, res) => {
 
-$("date").onchange = load;
+    try {
 
-$("status").onchange = load;
+      if (req.method === "OPTIONS") {
+        return send(res, 204, "");
+      }
 
-load();
+      const u = new URL(
+        req.url,
+        `http://${req.headers.host}`
+      );
 
-setInterval(load,15000);
 
-</script>
+      // =========================
+      // SIGN UP
+      // =========================
 
-</body>
-</html>
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/signup"
+      ) {
+
+        const x = await body(req);
+
+        if (!x.name || !x.phone || !x.password) {
+          return send(res, 400, {
+            error:
+              "Name, phone and password are required"
+          });
+        }
+
+        if (x.password.length < 6) {
+          return send(res, 400, {
+            error:
+              "Password must be at least 6 characters"
+          });
+        }
+
+        const existing = await pool.query(
+          "SELECT id FROM users WHERE phone = $1",
+          [x.phone]
+        );
+
+        if (existing.rows.length) {
+          return send(res, 409, {
+            error:
+              "An account with this phone number already exists"
+          });
+        }
+
+        const id = crypto.randomUUID();
+
+        const passwordHash =
+          await hashPassword(x.password);
+
+        await pool.query(
+          `INSERT INTO users
+           (id, name, phone, password_hash)
+           VALUES ($1, $2, $3, $4)`,
+          [
+            id,
+            x.name,
+            x.phone,
+            passwordHash
+          ]
+        );
+
+        return send(res, 201, {
+          message:
+            "Account created successfully"
+        });
+      }
+
+
+      // =========================
+      // LOGIN
+      // =========================
+
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/login"
+      ) {
+
+        const x = await body(req);
+
+        if (!x.phone || !x.password) {
+          return send(res, 400, {
+            error:
+              "Phone and password are required"
+          });
+        }
+
+        const result = await pool.query(
+          "SELECT * FROM users WHERE phone = $1",
+          [x.phone]
+        );
+
+        if (!result.rows.length) {
+          return send(res, 401, {
+            error:
+              "Invalid phone number or password"
+          });
+        }
+
+        const user = result.rows[0];
+
+        const valid =
+          await verifyPassword(
+            x.password,
+            user.password_hash
+          );
+
+        if (!valid) {
+          return send(res, 401, {
+            error:
+              "Invalid phone number or password"
+          });
+        }
+
+        const token =
+          crypto.randomBytes(32).toString("hex");
+
+        await pool.query(
+          `INSERT INTO sessions
+           (token, user_id)
+           VALUES ($1, $2)`,
+          [token, user.id]
+        );
+
+        return send(res, 200, {
+          message: "Login successful",
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            phone: user.phone
+          }
+        });
+      }
+
+
+      // =========================
+      // CURRENT USER
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/me"
+      ) {
+
+        const user = await getUser(req);
+
+        if (!user) {
+          return send(res, 401, {
+            error: "Not logged in"
+          });
+        }
+
+        return send(res, 200, {
+          user
+        });
+      }
+
+
+      // =========================
+      // LOGOUT
+      // =========================
+
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/logout"
+      ) {
+
+        const token = getToken(req);
+
+        if (token) {
+          await pool.query(
+            "DELETE FROM sessions WHERE token = $1",
+            [token]
+          );
+        }
+
+        return send(res, 200, {
+          message: "Logged out"
+        });
+      }
+
+
+      // =========================
+      // AVAILABLE SLOTS
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/slots"
+      ) {
+
+        const date =
+          u.searchParams.get("date");
+
+        const result = await pool.query(
+          `SELECT time
+           FROM bookings
+           WHERE date = $1
+           AND status != 'Cancelled'
+           AND status != 'Rejected'`,
+          [date]
+        );
+
+        return send(res, 200, {
+          slots: SLOTS,
+          booked:
+            result.rows.map(x => x.time)
+        });
+      }
+
+
+      // =========================
+      // CREATE BOOKING
+      // =========================
+
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/book"
+      ) {
+
+        const x = await body(req);
+
+        const user = await getUser(req);
+
+        if (
+          !x.name ||
+          !x.phone ||
+          !x.service ||
+          !x.date ||
+          !x.time
+        ) {
+          return send(res, 400, {
+            error:
+              "Fill all required fields"
+          });
+        }
+
+        const existing = await pool.query(
+          `SELECT id
+           FROM bookings
+           WHERE date = $1
+           AND time = $2
+           AND status != 'Cancelled'
+           AND status != 'Rejected'`,
+          [
+            x.date,
+            x.time
+          ]
+        );
+
+        if (existing.rows.length) {
+          return send(res, 409, {
+            error:
+              "Slot already booked"
+          });
+        }
+
+        const id =
+          crypto.randomUUID();
+
+        const bookingNo =
+          "SS-" +
+          Math.floor(
+            100000 +
+            Math.random() * 900000
+          );
+
+        const result = await pool.query(
+          `INSERT INTO bookings
+           (
+             id,
+             booking_no,
+             user_id,
+             name,
+             phone,
+             service,
+             date,
+             time,
+             notes,
+             status
+           )
+           VALUES
+           ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           RETURNING *`,
+          [
+            id,
+            bookingNo,
+            user ? user.id : null,
+            x.name,
+            x.phone,
+            x.service,
+            x.date,
+            x.time,
+            x.notes || "",
+            "Pending"
+          ]
+        );
+
+        return send(res, 201, {
+          ...result.rows[0],
+          message:
+            "Booking request submitted. Waiting for salon confirmation."
+        });
+      }
+
+
+      // =========================
+      // ALL BOOKINGS - BARBER
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/bookings"
+      ) {
+
+        const result = await pool.query(
+          "SELECT * FROM bookings ORDER BY date, time"
+        );
+
+        return send(
+          res,
+          200,
+          result.rows
+        );
+      }
+
+
+      // =========================
+      // MY BOOKINGS
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/my-bookings"
+      ) {
+
+        const user = await getUser(req);
+
+        if (!user) {
+          return send(res, 401, {
+            error:
+              "Please login first"
+          });
+        }
+
+        const result = await pool.query(
+          `SELECT *
+           FROM bookings
+           WHERE user_id = $1
+           ORDER BY date DESC, time DESC`,
+          [user.id]
+        );
+
+        return send(
+          res,
+          200,
+          result.rows
+        );
+      }
+
+
+      // =========================
+      // UPDATE BOOKING
+      // =========================
+
+      if (
+        req.method === "PATCH" &&
+        u.pathname.startsWith("/api/bookings/")
+      ) {
+
+        const id =
+          u.pathname.split("/").pop();
+
+        const x = await body(req);
+
+        const allowedStatuses = [
+          "Pending",
+          "Confirmed",
+          "Completed",
+          "Cancelled",
+          "Rejected"
+        ];
+
+        if (
+          x.status &&
+          !allowedStatuses.includes(x.status)
+        ) {
+          return send(res, 400, {
+            error:
+              "Invalid booking status"
+          });
+        }
+
+        const result = await pool.query(
+          `UPDATE bookings
+           SET status =
+             COALESCE($1, status)
+           WHERE id = $2
+           RETURNING *`,
+          [
+            x.status || null,
+            id
+          ]
+        );
+
+        if (!result.rows.length) {
+          return send(res, 404, {
+            error: "Not found"
+          });
+        }
+
+        return send(
+          res,
+          200,
+          result.rows[0]
+        );
+      }
+
+
+      // =========================
+      // STATIC FILES
+      // =========================
+
+      let file =
+        u.pathname === "/"
+          ? "customer.html"
+          : u.pathname.slice(1);
+
+      const full =
+        path.join(
+          PUBLIC,
+          file
+        );
+
+      fs.readFile(
+        full,
+        (err, data) => {
+
+          if (err) {
+            return send(
+              res,
+              404,
+              "Not found",
+              "text/plain"
+            );
+          }
+
+          const ext =
+            path.extname(full);
+
+          const types = {
+            ".html": "text/html",
+            ".css": "text/css",
+            ".js": "text/javascript"
+          };
+
+          send(
+            res,
+            200,
+            data,
+            types[ext] ||
+              "application/octet-stream"
+          );
+        }
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      send(res, 500, {
+        error:
+          "Server error"
+      });
+    }
+  }
+);
+
+
+initDB()
+  .then(() => {
+
+    server.listen(
+      PORT,
+      () => {
+        console.log(
+          `StyleSpot running on port ${PORT}`
+        );
+      }
+    );
+
+  })
+  .catch(err => {
+
+    console.error(
+      "Database initialization failed:",
+      err
+    );
+
+    process.exit(1);
+  }
