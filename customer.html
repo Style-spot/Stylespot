@@ -1,90 +1,901 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>StyleSpot Salon | Book Your Appointment</title>
+
 <style>
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#0b0b0d;color:#f5f2ec;font-family:Arial,system-ui,sans-serif;line-height:1.5}
-.nav{height:74px;padding:0 6%;display:flex;align-items:center;gap:28px;border-bottom:1px solid #28282e;background:#0b0b0d;position:sticky;top:0;z-index:10}.brand{margin-right:auto;font-weight:800;font-size:21px}.brand span,.goldtext,.eyebrow{color:#d8aa60}.nav a{color:#ddd;text-decoration:none}.hero{padding:85px 8%;display:grid;grid-template-columns:1.1fr .9fr;gap:55px;align-items:center;background:radial-gradient(circle at 80% 20%,#352819,transparent 35%)}.eyebrow{font-size:12px;font-weight:800;letter-spacing:2px}.hero h1{font:700 clamp(55px,8vw,100px)/.95 Georgia,serif;margin:18px 0}.hero h1 em{color:#d8aa60;font-style:normal}.hero p{font-size:18px;color:#aaa;max-width:650px}.btn{display:inline-block;padding:14px 20px;border-radius:10px;text-decoration:none;border:0;font-weight:800;cursor:pointer}.gold{background:#d8aa60;color:#111}.ghost{border:1px solid #444;margin-left:8px;color:#fff}.hero-card,.booking-box,.service{background:#151519;border:1px solid #2b2b31;border-radius:20px}.hero-card{padding:30px}.hero-card h2{font-family:Georgia,serif;font-size:29px}.step{display:flex;gap:15px;padding:14px 0;border-top:1px solid #303036;color:#aaa}.step b{color:#d8aa60}section{padding:75px 8%}.section-head{display:flex;justify-content:space-between;gap:30px;margin-bottom:35px}.section-head h2,.booking-title h2{font:600 42px/1.1 Georgia,serif;margin:8px 0}.section-head p{max-width:450px;color:#999}.services{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.service{padding:25px}.service .icon{font-size:30px;color:#d8aa60}.service h3{margin-bottom:7px}.service p{color:#999;min-height:45px}.price{color:#d8aa60;font-weight:800;font-size:18px}.dark{background:#111113}.benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.benefits div{border-top:1px solid #34343a;padding-top:15px}.benefits b{color:#d8aa60}.benefits p{color:#999}.booking-box{max-width:1000px;margin:auto;padding:35px}.booking-title{text-align:center;margin-bottom:30px}.booking-title p{color:#999}.form{display:grid;grid-template-columns:1fr 1fr;gap:17px}label{font-size:13px;color:#ccc}input,select,textarea{display:block;width:100%;margin-top:7px;padding:14px;background:#0c0c0f;color:#fff;border:1px solid #36363d;border-radius:10px;font:inherit}textarea{min-height:100px;resize:vertical}.wide{grid-column:1/-1}.slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.slot{padding:10px 13px;border-radius:9px;border:1px solid #37373f;background:#0c0c10;color:#eee;cursor:pointer}.slot.active{background:#d8aa60;color:#111;border-color:#d8aa60}.slot.booked{opacity:.3;text-decoration:line-through;cursor:not-allowed}.success{margin-top:20px;padding:20px;border-radius:12px;background:#142017;border:1px solid #345e3a;color:#d9f2db}.success strong{display:block;font-size:22px;color:#d8aa60}.error{margin-top:15px;color:#ffb1a8}.hidden{display:none}footer{padding:35px 8%;border-top:1px solid #28282e;color:#999;display:flex;justify-content:space-between}
-@media(max-width:800px){.hero{grid-template-columns:1fr}.services{grid-template-columns:1fr 1fr}.benefits{grid-template-columns:1fr 1fr}.section-head{display:block}.form{grid-template-columns:1fr}.wide{grid-column:auto}}@media(max-width:520px){.nav{gap:12px}.nav a:not(.brand){font-size:12px}.hero{padding:65px 6%}.hero h1{font-size:58px}section{padding:60px 6%}.services,.benefits{grid-template-columns:1fr}.booking-box{padding:20px}.section-head h2,.booking-title h2{font-size:34px}footer{display:block}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+margin:0;background:#0b0b0d;color:#f5f2ec;
+font-family:Arial,system-ui,sans-serif;line-height:1.5
+}
+.nav{
+height:74px;padding:0 6%;display:flex;align-items:center;gap:28px;
+border-bottom:1px solid #28282e;background:#0b0b0d;
+position:sticky;top:0;z-index:10
+}
+.brand{margin-right:auto;font-weight:800;font-size:21px}
+.brand span,.goldtext,.eyebrow{color:#d8aa60}
+.nav a{color:#ddd;text-decoration:none;cursor:pointer}
+.user-area{display:flex;align-items:center;gap:10px}
+.user-name{color:#d8aa60;font-weight:700}
+.small-btn{
+padding:8px 12px;border-radius:8px;border:1px solid #444;
+background:#151519;color:#fff;cursor:pointer
+}
+.hero{
+padding:85px 8%;display:grid;grid-template-columns:1.1fr .9fr;
+gap:55px;align-items:center;
+background:radial-gradient(circle at 80% 20%,#352819,transparent 35%)
+}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:2px}
+.hero h1{
+font:700 clamp(55px,8vw,100px)/.95 Georgia,serif;margin:18px 0
+}
+.hero h1 em{color:#d8aa60;font-style:normal}
+.hero p{font-size:18px;color:#aaa;max-width:650px}
+.btn{
+display:inline-block;padding:14px 20px;border-radius:10px;
+text-decoration:none;border:0;font-weight:800;cursor:pointer
+}
+.gold{background:#d8aa60;color:#111}
+.ghost{border:1px solid #444;margin-left:8px;color:#fff;background:transparent}
+.hero-card,.booking-box,.service,.account-box{
+background:#151519;border:1px solid #2b2b31;border-radius:20px
+}
+.hero-card{padding:30px}
+.hero-card h2{font-family:Georgia,serif;font-size:29px}
+.step{
+display:flex;gap:15px;padding:14px 0;border-top:1px solid #303036;color:#aaa
+}
+.step b{color:#d8aa60}
+section{padding:75px 8%}
+.section-head{
+display:flex;justify-content:space-between;gap:30px;margin-bottom:35px
+}
+.section-head h2,.booking-title h2,.account-box h2{
+font:600 42px/1.1 Georgia,serif;margin:8px 0
+}
+.section-head p{max-width:450px;color:#999}
+.services{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.service{padding:25px}
+.service .icon{font-size:30px;color:#d8aa60}
+.service h3{margin-bottom:7px}
+.service p{color:#999;min-height:45px}
+.price{color:#d8aa60;font-weight:800;font-size:18px}
+.dark{background:#111113}
+.benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.benefits div{border-top:1px solid #34343a;padding-top:15px}
+.benefits b{color:#d8aa60}
+.benefits p{color:#999}
+.booking-box{
+max-width:1000px;margin:auto;padding:35px
+}
+.booking-title{text-align:center;margin-bottom:30px}
+.booking-title p{color:#999}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+label{font-size:13px;color:#ccc}
+input,select,textarea{
+display:block;width:100%;margin-top:7px;padding:14px;
+background:#0c0c0f;color:#fff;border:1px solid #36363d;
+border-radius:10px;font:inherit
+}
+textarea{min-height:100px;resize:vertical}
+.wide{grid-column:1/-1}
+.slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.slot{
+padding:10px 13px;border-radius:9px;border:1px solid #37373f;
+background:#0c0c10;color:#eee;cursor:pointer
+}
+.slot.active{background:#d8aa60;color:#111;border-color:#d8aa60}
+.slot.booked{opacity:.3;text-decoration:line-through;cursor:not-allowed}
+.success{
+margin-top:20px;padding:20px;border-radius:12px;
+background:#142017;border:1px solid #345e3a;color:#d9f2db
+}
+.success strong{display:block;font-size:22px;color:#d8aa60}
+.error{margin-top:15px;color:#ffb1a8}
+.hidden{display:none}
+
+.account-box{
+max-width:500px;margin:30px auto;padding:30px
+}
+.account-box h2{text-align:center;font-size:34px}
+.account-tabs{
+display:flex;gap:10px;margin-bottom:20px
+}
+.account-tabs button{
+flex:1;padding:12px;border:1px solid #444;
+background:#0c0c0f;color:#aaa;border-radius:9px;cursor:pointer
+}
+.account-tabs button.active{
+background:#d8aa60;color:#111;border-color:#d8aa60
+}
+.account-form{display:grid;gap:15px}
+.account-form button{margin-top:5px}
+.account-message{
+margin-top:15px;text-align:center;color:#ffb1a8
+}
+.account-message.success-message{color:#9ee7a5}
+
+.booking-card{
+border:1px solid #303036;
+background:#101014;
+padding:18px;border-radius:12px;margin-top:12px
+}
+.booking-card b{color:#d8aa60}
+.status{color:#aaa}
+
+footer{
+padding:35px 8%;border-top:1px solid #28282e;color:#999;
+display:flex;justify-content:space-between
+}
+
+@media(max-width:800px){
+.hero{grid-template-columns:1fr}
+.services{grid-template-columns:1fr 1fr}
+.benefits{grid-template-columns:1fr 1fr}
+.section-head{display:block}
+.form{grid-template-columns:1fr}
+.wide{grid-column:auto}
+.nav{gap:12px}
+}
+
+@media(max-width:520px){
+.nav{gap:10px;height:auto;min-height:74px;flex-wrap:wrap;padding:15px 5%}
+.nav a:not(.brand){font-size:12px}
+.user-area{width:100%;justify-content:flex-end}
+.hero{padding:65px 6%}
+.hero h1{font-size:58px}
+section{padding:60px 6%}
+.services,.benefits{grid-template-columns:1fr}
+.booking-box{padding:20px}
+.section-head h2,.booking-title h2{font-size:34px}
+footer{display:block}
+}
 </style>
 </head>
+
 <body>
-<nav class="nav"><a class="brand">STYLE<span>SPOT</span></a><a href="#services">Services</a><a href="#why">Why Us</a><a href="#booking" class="goldtext">Book Now</a></nav>
-<header class="hero"><div><div class="eyebrow">PREMIUM GROOMING • EASY BOOKING</div><h1>Your time.<br><em>Your style.</em></h1><p>Book your haircut, beard grooming and salon services before you arrive. No unnecessary waiting — just show up at your selected time.</p><a class="btn gold" href="#booking">Book an appointment</a><a class="btn ghost" href="#services">Explore services</a></div>
-<div class="hero-card"><div class="eyebrow">TODAY'S EXPERIENCE</div><h2>Walk in looking good.<br>Walk out feeling better.</h2><div class="step"><b>01</b> Choose your service</div><div class="step"><b>02</b> Select an available slot</div><div class="step"><b>03</b> Arrive on time</div></div></header>
 
-<section id="services"><div class="section-head"><div><div class="eyebrow">OUR SERVICES</div><h2>Grooming, made simple.</h2></div><p>Professional services with transparent sample pricing.</p></div>
+<nav class="nav">
+<a class="brand">STYLE<span>SPOT</span></a>
+<a href="#services">Services</a>
+<a href="#why">Why Us</a>
+<a href="#booking" class="goldtext">Book Now</a>
+
+<div id="guestArea">
+<button class="small-btn" onclick="openAccount('login')">Login</button>
+<button class="small-btn" onclick="openAccount('signup')">Sign Up</button>
+</div>
+
+<div id="userArea" class="user-area hidden">
+<span id="userName" class="user-name"></span>
+<button class="small-btn" onclick="showMyBookings()">My Bookings</button>
+<button class="small-btn" onclick="logout()">Logout</button>
+</div>
+</nav>
+
+<header class="hero">
+<div>
+<div class="eyebrow">PREMIUM GROOMING • EASY BOOKING</div>
+<h1>Your time.<br><em>Your style.</em></h1>
+<p>
+Book your haircut, beard grooming and salon services before you arrive.
+No unnecessary waiting — just show up at your selected time.
+</p>
+<a class="btn gold" href="#booking">Book an appointment</a>
+<a class="btn ghost" href="#services">Explore services</a>
+</div>
+
+<div class="hero-card">
+<div class="eyebrow">TODAY'S EXPERIENCE</div>
+<h2>Walk in looking good.<br>Walk out feeling better.</h2>
+<div class="step"><b>01</b> Choose your service</div>
+<div class="step"><b>02</b> Select an available slot</div>
+<div class="step"><b>03</b> Arrive on time</div>
+</div>
+</header>
+
+<section id="services">
+<div class="section-head">
+<div>
+<div class="eyebrow">OUR SERVICES</div>
+<h2>Grooming, made simple.</h2>
+</div>
+<p>Professional services with transparent sample pricing.</p>
+</div>
+
 <div class="services">
-<div class="service"><div class="icon">✂</div><h3>Signature Haircut</h3><p>Classic, modern or custom haircut.</p><b class="price">₹150</b></div>
-<div class="service"><div class="icon">◒</div><h3>Beard Grooming</h3><p>Trim, shape and clean beard styling.</p><b class="price">₹100</b></div>
-<div class="service"><div class="icon">✦</div><h3>Hair + Beard</h3><p>Complete grooming in one visit.</p><b class="price">₹220</b></div>
-<div class="service"><div class="icon">◈</div><h3>Hair Spa</h3><p>Relaxing hair-care treatment.</p><b class="price">₹350</b></div>
-<div class="service"><div class="icon">◎</div><h3>Head Massage</h3><p>Short relaxing scalp massage.</p><b class="price">₹120</b></div>
-<div class="service"><div class="icon">⌁</div><h3>Kids Haircut</h3><p>Comfortable grooming for children.</p><b class="price">₹120</b></div>
-</div></section>
 
-<section id="why" class="dark"><div class="eyebrow">WHY BOOK ONLINE?</div><h2 style="font:600 42px Georgia,serif">Less waiting. Better planning.</h2><div class="benefits"><div><b>01</b><h3>Live availability</h3><p>Booked slots can be blocked automatically in the live version.</p></div><div><b>02</b><h3>Instant confirmation</h3><p>Get your booking number after a successful appointment.</p></div><div><b>03</b><h3>Barber sees it too</h3><p>The same booking can appear on the barber dashboard.</p></div><div><b>04</b><h3>Special requests</h3><p>Add notes like low fade or beard shape.</p></div></div></section>
+<div class="service">
+<div class="icon">✂</div>
+<h3>Signature Haircut</h3>
+<p>Classic, modern or custom haircut.</p>
+<b class="price">₹150</b>
+</div>
 
-<section id="booking"><div class="booking-box"><div class="booking-title"><div class="eyebrow">RESERVE YOUR SLOT</div><h2>Book your appointment</h2><p>Select a date to see the available time slots.</p></div>
+<div class="service">
+<div class="icon">◒</div>
+<h3>Beard Grooming</h3>
+<p>Trim, shape and clean beard styling.</p>
+<b class="price">₹100</b>
+</div>
+
+<div class="service">
+<div class="icon">✦</div>
+<h3>Hair + Beard</h3>
+<p>Complete grooming in one visit.</p>
+<b class="price">₹220</b>
+</div>
+
+<div class="service">
+<div class="icon">◈</div>
+<h3>Hair Spa</h3>
+<p>Relaxing hair-care treatment.</p>
+<b class="price">₹350</b>
+</div>
+
+<div class="service">
+<div class="icon">◎</div>
+<h3>Head Massage</h3>
+<p>Short relaxing scalp massage.</p>
+<b class="price">₹120</b>
+</div>
+
+<div class="service">
+<div class="icon">⌁</div>
+<h3>Kids Haircut</h3>
+<p>Comfortable grooming for children.</p>
+<b class="price">₹120</b>
+</div>
+
+</div>
+</section>
+
+<section id="why" class="dark">
+<div class="eyebrow">WHY BOOK ONLINE?</div>
+<h2 style="font:600 42px Georgia,serif">Less waiting. Better planning.</h2>
+
+<div class="benefits">
+
+<div>
+<b>01</b>
+<h3>Live availability</h3>
+<p>Booked slots can be blocked automatically.</p>
+</div>
+
+<div>
+<b>02</b>
+<h3>Instant confirmation</h3>
+<p>Get your booking number after a successful appointment.</p>
+</div>
+
+<div>
+<b>03</b>
+<h3>Barber sees it too</h3>
+<p>The same booking can appear on the barber dashboard.</p>
+</div>
+
+<div>
+<b>04</b>
+<h3>Special requests</h3>
+<p>Add notes like low fade or beard shape.</p>
+</div>
+
+</div>
+</section>
+
+<section id="account" class="hidden">
+
+<div class="account-box">
+
+<div class="account-tabs">
+<button id="loginTab" class="active" onclick="switchAccount('login')">Login</button>
+<button id="signupTab" onclick="switchAccount('signup')">Sign Up</button>
+</div>
+
+<div id="loginForm">
+<h2>Welcome back</h2>
+
+<form class="account-form" onsubmit="login(event)">
+<label>
+Phone number
+<input id="loginPhone" type="tel" required placeholder="10-digit mobile number">
+</label>
+
+<label>
+Password
+<input id="loginPassword" type="password" required placeholder="Your password">
+</label>
+
+<button class="btn gold" type="submit">Login</button>
+</form>
+
+<div id="loginMessage" class="account-message"></div>
+</div>
+
+<div id="signupForm" class="hidden">
+<h2>Create account</h2>
+
+<form class="account-form" onsubmit="signup(event)">
+
+<label>
+Full name
+<input id="signupName" required placeholder="Enter your name">
+</label>
+
+<label>
+Phone number
+<input id="signupPhone" type="tel" required placeholder="10-digit mobile number">
+</label>
+
+<label>
+Password
+<input id="signupPassword" type="password" required minlength="6" placeholder="At least 6 characters">
+</label>
+
+<button class="btn gold" type="submit">Create Account</button>
+</form>
+
+<div id="signupMessage" class="account-message"></div>
+</div>
+
+</div>
+</section>
+
+<section id="booking">
+
+<div class="booking-box">
+
+<div class="booking-title">
+<div class="eyebrow">RESERVE YOUR SLOT</div>
+<h2>Book your appointment</h2>
+<p id="bookingHint">Login or create an account before booking.</p>
+</div>
+
 <form class="form" id="form">
-<label>Full name<input id="name" required placeholder="Enter your name"></label>
-<label>Phone number<input id="phone" required type="tel" placeholder="10-digit mobile number"></label>
-<label>Service<select id="service" required><option value="">Select a service</option><option>Signature Haircut — ₹150</option><option>Beard Grooming — ₹100</option><option>Hair + Beard — ₹220</option><option>Hair Spa — ₹350</option><option>Head Massage — ₹120</option><option>Kids Haircut — ₹120</option></select></label>
-<label>Date<input id="date" required type="date"></label>
-<div class="wide"><label>Available time</label><div id="slots" class="slots"></div><input id="time" type="hidden"></div>
-<div class="wide"><label>Special request <small>Optional</small><textarea id="notes" placeholder="Example: low fade, beard shape, etc."></textarea></label></div>
-<button class="btn gold wide" type="submit">Confirm appointment</button></form><div id="msg"></div></div></section>
-<footer><div><b>STYLE<span>SPOT</span></b><p>Smart booking for modern grooming.</p></div><div>Customer Website • Book • Select slot • Get confirmation</div></footer>
+
+<label>
+Full name
+<input id="name" required placeholder="Enter your name">
+</label>
+
+<label>
+Phone number
+<input id="phone" required type="tel" placeholder="10-digit mobile number">
+</label>
+
+<label>
+Service
+<select id="service" required>
+<option value="">Select a service</option>
+<option>Signature Haircut — ₹150</option>
+<option>Beard Grooming — ₹100</option>
+<option>Hair + Beard — ₹220</option>
+<option>Hair Spa — ₹350</option>
+<option>Head Massage — ₹120</option>
+<option>Kids Haircut — ₹120</option>
+</select>
+</label>
+
+<label>
+Date
+<input id="date" required type="date">
+</label>
+
+<div class="wide">
+<label>Available time</label>
+<div id="slots" class="slots"></div>
+<input id="time" type="hidden">
+</div>
+
+<div class="wide">
+<label>
+Special request <small>Optional</small>
+<textarea id="notes" placeholder="Example: low fade, beard shape, etc."></textarea>
+</label>
+</div>
+
+<button class="btn gold wide" type="submit">
+Confirm appointment
+</button>
+
+</form>
+
+<div id="msg"></div>
+
+</div>
+</section>
+
+<section id="myBookings" class="hidden">
+
+<div class="booking-box">
+
+<div class="booking-title">
+<div class="eyebrow">YOUR ACCOUNT</div>
+<h2>My Bookings</h2>
+<p>Your previous and upcoming appointments.</p>
+</div>
+
+<div id="bookingList"></div>
+
+</div>
+</section>
+
+<footer>
+<div>
+<b>STYLE<span>SPOT</span></b>
+<p>Smart booking for modern grooming.</p>
+</div>
+<div>Customer Website • Book • Select slot • Get confirmation</div>
+</footer>
 
 <script>
+
 const $=id=>document.getElementById(id);
-let now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());let today=now.toISOString().slice(0,10);$("date").min=today;$("date").value=today;
 
-async function loadSlots(){
-$("time").value="";
-$("slots").innerHTML="<p style='color:#888'>Loading slots…</p>";
-try{
-let res=await fetch("/api/slots?date="+encodeURIComponent($("date").value));
-let data=await res.json();
-$("slots").innerHTML="";
-data.slots.forEach(t=>{
-let b=document.createElement("button");
-b.type="button";b.className="slot";b.textContent=t;
-if(data.booked.includes(t)){b.disabled=true;b.classList.add("booked")}
-b.onclick=()=>{document.querySelectorAll(".slot").forEach(s=>s.classList.remove("active"));b.classList.add("active");$("time").value=t};
-$("slots").appendChild(b);
-});
-}catch(err){
-$("slots").innerHTML="<p class='error'>Could not load slots. Make sure the server is running.</p>";
-}
-}
-$("date").onchange=loadSlots;
-loadSlots();
+let now=new Date();
+now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
 
-$("form").onsubmit=async e=>{
+let today=now.toISOString().slice(0,10);
+
+$("date").min=today;
+$("date").value=today;
+
+let currentUser=null;
+
+function getToken(){
+return localStorage.getItem("stylespot_token");
+}
+
+function openAccount(type){
+$("account").classList.remove("hidden");
+$("account").scrollIntoView({behavior:"smooth"});
+switchAccount(type);
+}
+
+function switchAccount(type){
+
+$("loginForm").classList.toggle("hidden",type!=="login");
+$("signupForm").classList.toggle("hidden",type!=="signup");
+
+$("loginTab").classList.toggle("active",type==="login");
+$("signupTab").classList.toggle("active",type==="signup");
+
+}
+
+async function signup(e){
+
 e.preventDefault();
-let t=$("time").value;
-if(!t)return alert("Please select an available time slot.");
-let payload={name:$("name").value,phone:$("phone").value,service:$("service").value,date:$("date").value,time:t,notes:$("notes").value};
-let submitBtn=$("form").querySelector("button[type=submit]");
-submitBtn.disabled=true;
+
+const msg=$("signupMessage");
+msg.className="account-message";
+msg.textContent="Creating account...";
+
 try{
-let res=await fetch("/api/book",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-let data=await res.json();
+
+const res=await fetch("/api/signup",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+name:$("signupName").value.trim(),
+phone:$("signupPhone").value.trim(),
+password:$("signupPassword").value
+})
+});
+
+const data=await res.json();
+
 if(!res.ok){
-if(res.status===409){alert("That slot has just been booked. Please choose another.");loadSlots();}
-else{alert(data.error||"Something went wrong. Please try again.");}
+msg.textContent=data.error||"Could not create account.";
 return;
 }
-$("msg").className="success";
-$("msg").innerHTML="<b>Appointment confirmed</b><strong>"+data.bookingNo+"</strong><p>"+data.name+", your "+data.service+" appointment is booked for <b>"+data.date+"</b> at <b>"+data.time+"</b>.</p>";
-$("form").reset();$("date").value=today;$("time").value="";
-loadSlots();
+
+msg.className="account-message success-message";
+msg.textContent="Account created successfully. You can now login.";
+
+$("signupName").value="";
+$("signupPhone").value="";
+$("signupPassword").value="";
+
+setTimeout(()=>switchAccount("login"),700);
+
 }catch(err){
-alert("Could not reach the server. Make sure it's running, then try again.");
-}finally{
-submitBtn.disabled=false;
+
+msg.textContent="Could not reach the server. Please try again.";
+
 }
+
+}
+
+async function login(e){
+
+e.preventDefault();
+
+const msg=$("loginMessage");
+msg.className="account-message";
+msg.textContent="Logging in...";
+
+try{
+
+const res=await fetch("/api/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+phone:$("loginPhone").value.trim(),
+password:$("loginPassword").value
+})
+});
+
+const data=await res.json();
+
+if(!res.ok){
+msg.textContent=data.error||"Login failed.";
+return;
+}
+
+localStorage.setItem("stylespot_token",data.token);
+
+currentUser=data.user;
+
+updateUserUI();
+
+msg.className="account-message success-message";
+msg.textContent="Login successful.";
+
+$("name").value=currentUser.name;
+$("phone").value=currentUser.phone;
+
+setTimeout(()=>{
+document.getElementById("booking").scrollIntoView({behavior:"smooth"});
+},500);
+
+}catch(err){
+
+msg.textContent="Could not reach the server. Please try again.";
+
+}
+
+}
+
+function updateUserUI(){
+
+if(currentUser){
+
+$("guestArea").classList.add("hidden");
+$("userArea").classList.remove("hidden");
+
+$("userName").textContent="Hi, "+currentUser.name;
+
+$("name").value=currentUser.name;
+$("phone").value=currentUser.phone;
+
+$("bookingHint").textContent="You're logged in. Select your service and preferred time.";
+
+}else{
+
+$("guestArea").classList.remove("hidden");
+$("userArea").classList.add("hidden");
+
+$("bookingHint").textContent="Login or create an account before booking.";
+
+}
+
+}
+
+async function checkLogin(){
+
+const token=getToken();
+
+if(!token){
+updateUserUI();
+return;
+}
+
+try{
+
+const res=await fetch("/api/me",{
+headers:{
+"Authorization":"Bearer "+token
+}
+});
+
+if(!res.ok){
+localStorage.removeItem("stylespot_token");
+updateUserUI();
+return;
+}
+
+const data=await res.json();
+currentUser=data.user;
+
+updateUserUI();
+
+}catch(err){
+
+localStorage.removeItem("stylespot_token");
+updateUserUI();
+
+}
+
+}
+
+async function logout(){
+
+const token=getToken();
+
+try{
+
+if(token){
+
+await fetch("/api/logout",{
+method:"POST",
+headers:{
+"Authorization":"Bearer "+token
+}
+});
+
+}
+
+}catch(err){}
+
+localStorage.removeItem("stylespot_token");
+
+currentUser=null;
+
+updateUserUI();
+
+$("myBookings").classList.add("hidden");
+
+alert("Logged out successfully.");
+
+}
+
+async function showMyBookings(){
+
+if(!currentUser){
+openAccount("login");
+return;
+}
+
+$("myBookings").classList.remove("hidden");
+
+$("myBookings").scrollIntoView({behavior:"smooth"});
+
+$("bookingList").innerHTML="<p style='color:#888'>Loading bookings...</p>";
+
+try{
+
+const res=await fetch("/api/my-bookings",{
+headers:{
+"Authorization":"Bearer "+getToken()
+}
+});
+
+const data=await res.json();
+
+if(!res.ok){
+$("bookingList").innerHTML="<p class='error'>"+(data.error||"Could not load bookings.")+"</p>";
+return;
+}
+
+if(!data.length){
+
+$("bookingList").innerHTML="<p style='color:#999;text-align:center'>You don't have any bookings yet.</p>";
+
+return;
+
+}
+
+$("bookingList").innerHTML=data.map(b=>`
+
+<div class="booking-card">
+
+<div><b>Booking:</b> ${escapeHTML(b.booking_no)}</div>
+
+<div><b>Service:</b> ${escapeHTML(b.service)}</div>
+
+<div><b>Date:</b> ${escapeHTML(String(b.date))}</div>
+
+<div><b>Time:</b> ${escapeHTML(b.time)}</div>
+
+<div><b>Status:</b> <span class="status">${escapeHTML(b.status)}</span></div>
+
+${b.notes?`<div><b>Notes:</b> ${escapeHTML(b.notes)}</div>`:""}
+
+</div>
+
+`).join("");
+
+}catch(err){
+
+$("bookingList").innerHTML="<p class='error'>Could not reach the server.</p>";
+
+}
+
+}
+
+function escapeHTML(value){
+
+return String(value)
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+
+}
+
+async function loadSlots(){
+
+$("time").value="";
+
+$("slots").innerHTML="<p style='color:#888'>Loading slots…</p>";
+
+try{
+
+let res=await fetch(
+"/api/slots?date="+encodeURIComponent($("date").value)
+);
+
+let data=await res.json();
+
+$("slots").innerHTML="";
+
+data.slots.forEach(t=>{
+
+let b=document.createElement("button");
+
+b.type="button";
+b.className="slot";
+b.textContent=t;
+
+if(data.booked.includes(t)){
+
+b.disabled=true;
+b.classList.add("booked");
+
+}
+
+b.onclick=()=>{
+
+document.querySelectorAll(".slot")
+.forEach(s=>s.classList.remove("active"));
+
+b.classList.add("active");
+
+$("time").value=t;
+
 };
-</script></body></html>
+
+$("slots").appendChild(b);
+
+});
+
+}catch(err){
+
+$("slots").innerHTML=
+"<p class='error'>Could not load slots. Make sure the server is running.</p>";
+
+}
+
+}
+
+$("date").onchange=loadSlots;
+
+$("form").onsubmit=async e=>{
+
+e.preventDefault();
+
+if(!currentUser){
+
+alert("Please login or create an account before booking.");
+
+openAccount("login");
+
+return;
+
+}
+
+let t=$("time").value;
+
+if(!t){
+
+alert("Please select an available time slot.");
+
+return;
+
+}
+
+let payload={
+name:$("name").value,
+phone:$("phone").value,
+service:$("service").value,
+date:$("date").value,
+time:t,
+notes:$("notes").value
+};
+
+let submitBtn=$("form").querySelector("button[type=submit]");
+
+submitBtn.disabled=true;
+
+try{
+
+let res=await fetch("/api/book",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+getToken()
+},
+body:JSON.stringify(payload)
+});
+
+let data=await res.json();
+
+if(!res.ok){
+
+if(res.status===409){
+
+alert("That slot has just been booked. Please choose another.");
+
+loadSlots();
+
+}else{
+
+alert(data.error||"Something went wrong. Please try again.");
+
+}
+
+return;
+
+}
+
+$("msg").className="success";
+
+$("msg").innerHTML=
+"<b>Appointment confirmed</b>"+
+"<strong>"+escapeHTML(data.booking_no)+"</strong>"+
+"<p>"+escapeHTML(data.name)+
+", your "+escapeHTML(data.service)+
+" appointment is booked for <b>"+
+escapeHTML(String(data.date))+
+"</b> at <b>"+
+escapeHTML(data.time)+
+"</b>.</p>";
+
+$("form").reset();
+
+$("date").value=today;
+
+$("name").value=currentUser.name;
+
+$("phone").value=currentUser.phone;
+
+$("time").value="";
+
+loadSlots();
+
+}catch(err){
+
+alert("Could not reach the server. Please try again.");
+
+}finally{
+
+submitBtn.disabled=false;
+
+}
+
+};
+
+checkLogin();
+loadSlots();
+
+</script>
+
+</body>
+  </html>
