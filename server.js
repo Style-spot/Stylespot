@@ -13,7 +13,9 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL
+    ? { rejectUnauthorized: false }
+    : false
 });
 
 const SLOTS = [
@@ -45,7 +47,7 @@ async function initDB() {
       date DATE NOT NULL,
       time TEXT NOT NULL,
       notes TEXT DEFAULT '',
-      status TEXT DEFAULT 'Booked',
+      status TEXT DEFAULT 'Pending',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
@@ -56,6 +58,19 @@ async function initDB() {
     );
   `);
 
+  // Make sure existing databases also use Pending
+  await pool.query(`
+    ALTER TABLE bookings
+    ALTER COLUMN status SET DEFAULT 'Pending';
+  `);
+
+  // Convert old "Booked" requests into Pending
+  await pool.query(`
+    UPDATE bookings
+    SET status = 'Pending'
+    WHERE status = 'Booked';
+  `);
+
   console.log("Database ready");
 }
 
@@ -63,18 +78,24 @@ function send(res, code, data, type = "application/json") {
   res.writeHead(code, {
     "Content-Type": type,
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS"
   });
 
-  res.end(type.includes("json") ? JSON.stringify(data) : data);
+  res.end(
+    type.includes("json")
+      ? JSON.stringify(data)
+      : data
+  );
 }
 
 function body(req) {
   return new Promise((resolve, reject) => {
     let b = "";
 
-    req.on("data", chunk => b += chunk);
+    req.on("data", chunk => {
+      b += chunk;
+    });
 
     req.on("end", () => {
       try {
@@ -92,7 +113,10 @@ function hashPassword(password) {
 
     crypto.scrypt(password, salt, 64, (err, derivedKey) => {
       if (err) return reject(err);
-      resolve(`${salt}:${derivedKey.toString("hex")}`);
+
+      resolve(
+        `${salt}:${derivedKey.toString("hex")}`
+      );
     });
   });
 }
@@ -101,23 +125,36 @@ function verifyPassword(password, stored) {
   return new Promise((resolve, reject) => {
     const [salt, key] = stored.split(":");
 
-    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
-      if (err) return reject(err);
+    crypto.scrypt(
+      password,
+      salt,
+      64,
+      (err, derivedKey) => {
+        if (err) return reject(err);
 
-      const storedKey = Buffer.from(key, "hex");
-      const isValid =
-        storedKey.length === derivedKey.length &&
-        crypto.timingSafeEqual(storedKey, derivedKey);
+        const storedKey =
+          Buffer.from(key, "hex");
 
-      resolve(isValid);
-    });
+        const isValid =
+          storedKey.length === derivedKey.length &&
+          crypto.timingSafeEqual(
+            storedKey,
+            derivedKey
+          );
+
+        resolve(isValid);
+      }
+    );
   });
 }
 
 function getToken(req) {
-  const header = req.headers.authorization || "";
+  const header =
+    req.headers.authorization || "";
 
-  if (!header.startsWith("Bearer ")) return null;
+  if (!header.startsWith("Bearer ")) {
+    return null;
+  }
 
   return header.slice(7);
 }
@@ -130,7 +167,8 @@ async function getUser(req) {
   const result = await pool.query(
     `SELECT users.id, users.name, users.phone
      FROM sessions
-     JOIN users ON users.id = sessions.user_id
+     JOIN users
+       ON users.id = sessions.user_id
      WHERE sessions.token = $1`,
     [token]
   );
@@ -138,303 +176,519 @@ async function getUser(req) {
   return result.rows[0] || null;
 }
 
-const server = http.createServer(async (req, res) => {
-  try {
-    if (req.method === "OPTIONS") {
-      return send(res, 204, "");
-    }
+const server = http.createServer(
+  async (req, res) => {
 
-    const u = new URL(req.url, `http://${req.headers.host}`);
+    try {
 
-    // SIGN UP
-    if (req.method === "POST" && u.pathname === "/api/signup") {
-      const x = await body(req);
-
-      if (!x.name || !x.phone || !x.password) {
-        return send(res, 400, {
-          error: "Name, phone and password are required"
-        });
+      if (req.method === "OPTIONS") {
+        return send(res, 204, "");
       }
 
-      if (x.password.length < 6) {
-        return send(res, 400, {
-          error: "Password must be at least 6 characters"
-        });
-      }
-
-      const existing = await pool.query(
-        "SELECT id FROM users WHERE phone = $1",
-        [x.phone]
+      const u = new URL(
+        req.url,
+        `http://${req.headers.host}`
       );
 
-      if (existing.rows.length) {
-        return send(res, 409, {
-          error: "An account with this phone number already exists"
-        });
-      }
+      // =========================
+      // SIGN UP
+      // =========================
 
-      const id = crypto.randomUUID();
-      const passwordHash = await hashPassword(x.password);
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/signup"
+      ) {
 
-      await pool.query(
-        `INSERT INTO users (id, name, phone, password_hash)
-         VALUES ($1, $2, $3, $4)`,
-        [id, x.name, x.phone, passwordHash]
-      );
+        const x = await body(req);
 
-      return send(res, 201, {
-        message: "Account created successfully"
-      });
-    }
-
-    // LOGIN
-    if (req.method === "POST" && u.pathname === "/api/login") {
-      const x = await body(req);
-
-      if (!x.phone || !x.password) {
-        return send(res, 400, {
-          error: "Phone and password are required"
-        });
-      }
-
-      const result = await pool.query(
-        "SELECT * FROM users WHERE phone = $1",
-        [x.phone]
-      );
-
-      if (!result.rows.length) {
-        return send(res, 401, {
-          error: "Invalid phone number or password"
-        });
-      }
-
-      const user = result.rows[0];
-      const valid = await verifyPassword(
-        x.password,
-        user.password_hash
-      );
-
-      if (!valid) {
-        return send(res, 401, {
-          error: "Invalid phone number or password"
-        });
-      }
-
-      const token = crypto.randomBytes(32).toString("hex");
-
-      await pool.query(
-        `INSERT INTO sessions (token, user_id)
-         VALUES ($1, $2)`,
-        [token, user.id]
-      );
-
-      return send(res, 200, {
-        message: "Login successful",
-        token,
-        user: {
-          id: user.id,
-          name: user.name,
-          phone: user.phone
+        if (!x.name || !x.phone || !x.password) {
+          return send(res, 400, {
+            error:
+              "Name, phone and password are required"
+          });
         }
-      });
-    }
 
-    // CURRENT USER
-    if (req.method === "GET" && u.pathname === "/api/me") {
-      const user = await getUser(req);
+        if (x.password.length < 6) {
+          return send(res, 400, {
+            error:
+              "Password must be at least 6 characters"
+          });
+        }
 
-      if (!user) {
-        return send(res, 401, { error: "Not logged in" });
+        const existing =
+          await pool.query(
+            "SELECT id FROM users WHERE phone = $1",
+            [x.phone]
+          );
+
+        if (existing.rows.length) {
+          return send(res, 409, {
+            error:
+              "An account with this phone number already exists"
+          });
+        }
+
+        const id = crypto.randomUUID();
+
+        const passwordHash =
+          await hashPassword(x.password);
+
+        await pool.query(
+          `INSERT INTO users
+           (id, name, phone, password_hash)
+           VALUES ($1, $2, $3, $4)`,
+          [
+            id,
+            x.name,
+            x.phone,
+            passwordHash
+          ]
+        );
+
+        return send(res, 201, {
+          message:
+            "Account created successfully"
+        });
       }
 
-      return send(res, 200, { user });
-    }
+      // =========================
+      // LOGIN
+      // =========================
 
-    // LOGOUT
-    if (req.method === "POST" && u.pathname === "/api/logout") {
-      const token = getToken(req);
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/login"
+      ) {
 
-      if (token) {
+        const x = await body(req);
+
+        if (!x.phone || !x.password) {
+          return send(res, 400, {
+            error:
+              "Phone and password are required"
+          });
+        }
+
+        const result =
+          await pool.query(
+            "SELECT * FROM users WHERE phone = $1",
+            [x.phone]
+          );
+
+        if (!result.rows.length) {
+          return send(res, 401, {
+            error:
+              "Invalid phone number or password"
+          });
+        }
+
+        const user = result.rows[0];
+
+        const valid =
+          await verifyPassword(
+            x.password,
+            user.password_hash
+          );
+
+        if (!valid) {
+          return send(res, 401, {
+            error:
+              "Invalid phone number or password"
+          });
+        }
+
+        const token =
+          crypto.randomBytes(32).toString("hex");
+
         await pool.query(
-          "DELETE FROM sessions WHERE token = $1",
-          [token]
+          `INSERT INTO sessions
+           (token, user_id)
+           VALUES ($1, $2)`,
+          [token, user.id]
+        );
+
+        return send(res, 200, {
+          message: "Login successful",
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            phone: user.phone
+          }
+        });
+      }
+
+      // =========================
+      // CURRENT USER
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/me"
+      ) {
+
+        const user =
+          await getUser(req);
+
+        if (!user) {
+          return send(res, 401, {
+            error: "Not logged in"
+          });
+        }
+
+        return send(res, 200, {
+          user
+        });
+      }
+
+      // =========================
+      // LOGOUT
+      // =========================
+
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/logout"
+      ) {
+
+        const token =
+          getToken(req);
+
+        if (token) {
+          await pool.query(
+            "DELETE FROM sessions WHERE token = $1",
+            [token]
+          );
+        }
+
+        return send(res, 200, {
+          message: "Logged out"
+        });
+      }
+
+      // =========================
+      // AVAILABLE SLOTS
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/slots"
+      ) {
+
+        const date =
+          u.searchParams.get("date");
+
+        const result =
+          await pool.query(
+            `SELECT time
+             FROM bookings
+             WHERE date = $1
+             AND status NOT IN
+             ('Cancelled','Rejected')`,
+            [date]
+          );
+
+        return send(res, 200, {
+          slots: SLOTS,
+          booked:
+            result.rows.map(x => x.time)
+        });
+      }
+
+      // =========================
+      // CREATE BOOKING
+      // =========================
+
+      if (
+        req.method === "POST" &&
+        u.pathname === "/api/book"
+      ) {
+
+        const x = await body(req);
+
+        const user =
+          await getUser(req);
+
+        if (
+          !x.name ||
+          !x.phone ||
+          !x.service ||
+          !x.date ||
+          !x.time
+        ) {
+          return send(res, 400, {
+            error:
+              "Fill all required fields"
+          });
+        }
+
+        const existing =
+          await pool.query(
+            `SELECT id
+             FROM bookings
+             WHERE date = $1
+             AND time = $2
+             AND status NOT IN
+             ('Cancelled','Rejected')`,
+            [x.date, x.time]
+          );
+
+        if (existing.rows.length) {
+          return send(res, 409, {
+            error:
+              "Slot already booked"
+          });
+        }
+
+        const id =
+          crypto.randomUUID();
+
+        const bookingNo =
+          "SS-" +
+          Math.floor(
+            100000 +
+            Math.random() * 900000
+          );
+
+        const result =
+          await pool.query(
+            `INSERT INTO bookings
+             (
+               id,
+               booking_no,
+               user_id,
+               name,
+               phone,
+               service,
+               date,
+               time,
+               notes,
+               status
+             )
+             VALUES
+             (
+               $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+             )
+             RETURNING *`,
+            [
+              id,
+              bookingNo,
+              user ? user.id : null,
+              x.name,
+              x.phone,
+              x.service,
+              x.date,
+              x.time,
+              x.notes || "",
+              "Pending"
+            ]
+          );
+
+        return send(
+          res,
+          201,
+          result.rows[0]
         );
       }
 
-      return send(res, 200, {
-        message: "Logged out"
+      // =========================
+      // ALL BOOKINGS - BARBER
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/bookings"
+      ) {
+
+        const result =
+          await pool.query(
+            `SELECT *
+             FROM bookings
+             ORDER BY date, time`
+          );
+
+        return send(
+          res,
+          200,
+          result.rows
+        );
+      }
+
+      // =========================
+      // MY BOOKINGS
+      // =========================
+
+      if (
+        req.method === "GET" &&
+        u.pathname === "/api/my-bookings"
+      ) {
+
+        const user =
+          await getUser(req);
+
+        if (!user) {
+          return send(res, 401, {
+            error:
+              "Please login first"
+          });
+        }
+
+        const result =
+          await pool.query(
+            `SELECT *
+             FROM bookings
+             WHERE user_id = $1
+             ORDER BY date DESC, time DESC`,
+            [user.id]
+          );
+
+        return send(
+          res,
+          200,
+          result.rows
+        );
+      }
+
+      // =========================
+      // UPDATE BOOKING STATUS
+      // =========================
+
+      if (
+        req.method === "PATCH" &&
+        u.pathname.startsWith(
+          "/api/bookings/"
+        )
+      ) {
+
+        const id =
+          u.pathname
+            .split("/")
+            .pop();
+
+        const x =
+          await body(req);
+
+        const allowedStatuses = [
+          "Pending",
+          "Confirmed",
+          "Completed",
+          "Cancelled",
+          "Rejected"
+        ];
+
+        if (
+          !allowedStatuses.includes(
+            x.status
+          )
+        ) {
+          return send(res, 400, {
+            error:
+              "Invalid booking status"
+          });
+        }
+
+        const result =
+          await pool.query(
+            `UPDATE bookings
+             SET status = $1
+             WHERE id = $2
+             RETURNING *`,
+            [
+              x.status,
+              id
+            ]
+          );
+
+        if (!result.rows.length) {
+          return send(res, 404, {
+            error: "Booking not found"
+          });
+        }
+
+        return send(
+          res,
+          200,
+          result.rows[0]
+        );
+      }
+
+      // =========================
+      // STATIC FILES
+      // =========================
+
+      let file =
+        u.pathname === "/"
+          ? "customer.html"
+          : u.pathname.slice(1);
+
+      const full =
+        path.join(
+          PUBLIC,
+          file
+        );
+
+      fs.readFile(
+        full,
+        (err, data) => {
+
+          if (err) {
+            return send(
+              res,
+              404,
+              "Not found",
+              "text/plain"
+            );
+          }
+
+          const ext =
+            path.extname(full);
+
+          const types = {
+            ".html": "text/html",
+            ".css": "text/css",
+            ".js": "text/javascript"
+          };
+
+          send(
+            res,
+            200,
+            data,
+            types[ext] ||
+              "application/octet-stream"
+          );
+        }
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      send(res, 500, {
+        error:
+          "Server error"
       });
     }
-
-    // AVAILABLE SLOTS
-    if (req.method === "GET" && u.pathname === "/api/slots") {
-      const date = u.searchParams.get("date");
-
-      const result = await pool.query(
-        `SELECT time
-         FROM bookings
-         WHERE date = $1
-         AND status != 'Cancelled'`,
-        [date]
-      );
-
-      return send(res, 200, {
-        slots: SLOTS,
-        booked: result.rows.map(x => x.time)
-      });
-    }
-
-    // CREATE BOOKING
-    if (req.method === "POST" && u.pathname === "/api/book") {
-      const x = await body(req);
-      const user = await getUser(req);
-
-      if (!x.name || !x.phone || !x.service || !x.date || !x.time) {
-        return send(res, 400, {
-          error: "Fill all required fields"
-        });
-      }
-
-      const existing = await pool.query(
-        `SELECT id
-         FROM bookings
-         WHERE date = $1
-         AND time = $2
-         AND status != 'Cancelled'`,
-        [x.date, x.time]
-      );
-
-      if (existing.rows.length) {
-        return send(res, 409, {
-          error: "Slot already booked"
-        });
-      }
-
-      const id = crypto.randomUUID();
-      const bookingNo =
-        "SS-" + Math.floor(100000 + Math.random() * 900000);
-
-      const result = await pool.query(
-        `INSERT INTO bookings
-         (id, booking_no, user_id, name, phone, service, date, time, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-         RETURNING *`,
-        [
-          id,
-          bookingNo,
-          user ? user.id : null,
-          x.name,
-          x.phone,
-          x.service,
-          x.date,
-          x.time,
-          x.notes || ""
-        ]
-      );
-
-      return send(res, 201, result.rows[0]);
-    }
-
-    // ALL BOOKINGS - BARBER
-    if (req.method === "GET" && u.pathname === "/api/bookings") {
-      const result = await pool.query(
-        "SELECT * FROM bookings ORDER BY date, time"
-      );
-
-      return send(res, 200, result.rows);
-    }
-
-    // MY BOOKINGS
-    if (req.method === "GET" && u.pathname === "/api/my-bookings") {
-      const user = await getUser(req);
-
-      if (!user) {
-        return send(res, 401, {
-          error: "Please login first"
-        });
-      }
-
-      const result = await pool.query(
-        `SELECT *
-         FROM bookings
-         WHERE user_id = $1
-         ORDER BY date DESC, time DESC`,
-        [user.id]
-      );
-
-      return send(res, 200, result.rows);
-    }
-
-    // UPDATE BOOKING
-    if (
-      req.method === "PATCH" &&
-      u.pathname.startsWith("/api/bookings/")
-    ) {
-      const id = u.pathname.split("/").pop();
-      const x = await body(req);
-
-      const result = await pool.query(
-        `UPDATE bookings
-         SET status = COALESCE($1, status)
-         WHERE id = $2
-         RETURNING *`,
-        [x.status || null, id]
-      );
-
-      if (!result.rows.length) {
-        return send(res, 404, {
-          error: "Not found"
-        });
-      }
-
-      return send(res, 200, result.rows[0]);
-    }
-
-    // STATIC FILES
-    let file =
-      u.pathname === "/"
-        ? "customer.html"
-        : u.pathname.slice(1);
-
-    const full = path.join(PUBLIC, file);
-
-    fs.readFile(full, (err, data) => {
-      if (err) {
-        return send(res, 404, "Not found", "text/plain");
-      }
-
-      const ext = path.extname(full);
-
-      const types = {
-        ".html": "text/html",
-        ".css": "text/css",
-        ".js": "text/javascript"
-      };
-
-      send(
-        res,
-        200,
-        data,
-        types[ext] || "application/octet-stream"
-      );
-    });
-
-  } catch (err) {
-    console.error(err);
-
-    send(res, 500, {
-      error: "Server error"
-    });
   }
-});
+);
 
 initDB()
   .then(() => {
-    server.listen(PORT, () => {
-      console.log(`StyleSpot running on port ${PORT}`);
-    });
+
+    server.listen(
+      PORT,
+      () => {
+        console.log(
+          `StyleSpot running on port ${PORT}`
+        );
+      }
+    );
+
   })
   .catch(err => {
-    console.error("Database initialization failed:", err);
+
+    console.error(
+      "Database initialization failed:",
+      err
+    );
+
     process.exit(1);
   });
