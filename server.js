@@ -7,7 +7,6 @@ const webpush = require("web-push");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = __dirname;
-const server = http.createServer(handleRequest);
 
 /*
 =========================================================
