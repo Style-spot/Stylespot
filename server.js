@@ -3990,7 +3990,7 @@ PART 10E / 10
           await fs.promises.readFile(
             path.join(
               PUBLIC_DIR,
-              "index.html"
+              "customer.html"
             )
           );
 
