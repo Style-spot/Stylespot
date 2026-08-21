@@ -291,15 +291,87 @@ input,select{
 const $ = id => document.getElementById(id);
 
 
+/* BARBER LOGIN */
+
+async function barberLogin(){
+
+  const phone =
+    prompt("Enter barber phone number:");
+
+  if(!phone){
+    return;
+  }
+
+  const password =
+    prompt("Enter barber password:");
+
+  if(!password){
+    return;
+  }
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/barber/login",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":"application/json"
+          },
+
+          body:JSON.stringify({
+            phone:phone,
+            password:password
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Barber login failed"
+      );
+
+      return;
+    }
+
+    localStorage.setItem(
+      "barberToken",
+      data.token
+    );
+
+    alert(
+      "Barber login successful!"
+    );
+
+    load();
+
+  }catch(error){
+
+    console.error(error);
+
+    alert(
+      "Could not connect to server."
+    );
+
+  }
+
+}
+
+
 /* BARBER TOKEN */
 
 function getToken(){
 
   return (
     localStorage.getItem("barberToken") ||
-    localStorage.getItem("token") ||
     sessionStorage.getItem("barberToken") ||
-    sessionStorage.getItem("token") ||
     ""
   );
 
