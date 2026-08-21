@@ -306,7 +306,7 @@ async function load(){
   try{
 
     const response =
-      await fetch("/api/bookings");
+      await fetch("/api/barber/bookings");
 
     const all =
       await response.json();
