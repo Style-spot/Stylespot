@@ -536,21 +536,26 @@ async function load(){
     </div>
   `;
 
-        }
-            <button
-              class="action complete"
-              onclick="changeStatus('${x.id}','Completed')">
-              ✓ Mark Completed
-            </button>
+}
 
-            <button
-              class="action cancel"
-              onclick="changeStatus('${x.id}','Cancelled')">
-              Cancel
-            </button>
-          `;
 
-        }
+else if(status === "Confirmed"){
+
+  buttons = `
+    <button
+      class="action complete"
+      onclick="changeStatus('${x.id}','Completed')">
+      ✓ Mark Completed
+    </button>
+
+    <button
+      class="action cancel"
+      onclick="changeStatus('${x.id}','Cancelled')">
+      Cancel
+    </button>
+  `;
+
+}
 
 
         else if(status === "Completed"){
