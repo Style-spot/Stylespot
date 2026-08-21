@@ -311,9 +311,22 @@ async function load(){
     const all =
       await response.json();
 
-    if(!Array.isArray(all)){
-      throw new Error("Invalid booking data");
-    }
+    const data =
+  await response.json();
+
+if(!response.ok){
+  throw new Error(
+    data.error ||
+    "Could not load appointments"
+  );
+}
+
+const all =
+  data.bookings;
+
+if(!Array.isArray(all)){
+  throw new Error("Invalid booking data");
+}
 
     const selectedDate =
       $("date").value;
