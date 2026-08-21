@@ -305,13 +305,17 @@ async function load(){
 
   try{
 
-    const response =
-      await fetch("/api/barber/bookings");
+  const response =
+  await fetch(
+    "/api/barber/bookings",
+    {
+      headers:{
+        "Authorization":"Bearer "+getToken()
+      }
+    }
+  );
 
-    const all =
-      await response.json();
-
-    const data =
+const data =
   await response.json();
 
 if(!response.ok){
@@ -323,6 +327,10 @@ if(!response.ok){
 
 const all =
   data.bookings;
+
+if(!Array.isArray(all)){
+  throw new Error("Invalid booking data");
+}  
 
 if(!Array.isArray(all)){
   throw new Error("Invalid booking data");
