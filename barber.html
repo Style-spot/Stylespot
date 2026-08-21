@@ -296,7 +296,19 @@ input,select{
 
 const $ = id => document.getElementById(id);
 
+function checkBarberLogin(){
 
+  const token = getToken();
+
+  if(token){
+    alert("You are already logged in as barber.");
+    return;
+  }
+
+  barberLogin();
+
+}
+  
 /* BARBER LOGIN */
 
 async function barberLogin(){
