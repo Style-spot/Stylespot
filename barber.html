@@ -290,6 +290,24 @@ input,select{
 
 const $ = id => document.getElementById(id);
 
+
+/* BARBER TOKEN */
+
+function getToken(){
+
+  return (
+    localStorage.getItem("barberToken") ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("barberToken") ||
+    sessionStorage.getItem("token") ||
+    ""
+  );
+
+}
+
+
+/* DATE */
+
 let d = new Date();
 
 d.setMinutes(
@@ -301,37 +319,54 @@ $("date").value =
   d.toISOString().slice(0,10);
 
 
+/* LOAD APPOINTMENTS */
+
 async function load(){
 
   try{
 
-  const response =
-  await fetch(
-    "/api/barber/bookings",
-    {
-      headers:{
-        "Authorization":"Bearer "+getToken()
-      }
+    const token = getToken();
+
+    if(!token){
+
+      $("list").innerHTML =
+        "<div class='empty'>Barber login required. Please login again.</div>";
+
+      return;
     }
-  );
 
-const data =
-  await response.json();
+    const response =
+      await fetch(
+        "/api/barber/bookings",
+        {
+          headers:{
+            "Authorization":"Bearer "+token
+          }
+        }
+      );
 
-if(!response.ok){
-  throw new Error(
-    data.error ||
-    "Could not load appointments"
-  );
-}
+    const data =
+      await response.json();
 
-const all =
-  data.bookings;
+    if(!response.ok){
 
-if(!Array.isArray(all)){
-  throw new Error("Invalid booking data");
-}  
+      throw new Error(
+        data.error ||
+        "Could not load appointments"
+      );
 
+    }
+
+    const all =
+      data.bookings;
+
+    if(!Array.isArray(all)){
+
+      throw new Error(
+        "Invalid booking data"
+      );
+
+    }
 
     const selectedDate =
       $("date").value;
@@ -351,6 +386,7 @@ if(!Array.isArray(all)){
           x.status === selectedStatus;
 
         return dateMatch && statusMatch;
+
       });
 
 
@@ -360,6 +396,7 @@ if(!Array.isArray(all)){
       "Completed",
       "Cancelled"
     ];
+
 
     $("stats").innerHTML =
       statuses.map(status => {
@@ -511,30 +548,89 @@ if(!Array.isArray(all)){
 
     $("list").innerHTML =
       "<div class='empty'>Could not load appointments. Please refresh.</div>";
+
   }
+
 }
 
+
+/* CHANGE BOOKING STATUS */
 
 async function changeStatus(id,status){
 
   try{
 
+    const token = getToken();
+
+    if(!token){
+
+      alert(
+        "Barber login required. Please login again."
+      );
+
+      return;
+    }
+
+
+    let endpoint;
+
+
+    if(status === "Confirmed"){
+
+      endpoint =
+        "/api/barber/bookings/" +
+        id +
+        "/accept";
+
+    }
+    else if(status === "Rejected"){
+
+      endpoint =
+        "/api/barber/bookings/" +
+        id +
+        "/reject";
+
+    }
+    else if(status === "Completed"){
+
+      endpoint =
+        "/api/barber/bookings/" +
+        id +
+        "/complete";
+
+    }
+    else if(status === "Cancelled"){
+
+      endpoint =
+        "/api/barber/bookings/" +
+        id +
+        "/cancel";
+
+    }
+    else{
+
+      alert("Invalid booking status.");
+
+      return;
+    }
+
+
     const response =
       await fetch(
-        "/api/bookings/" + id,
+        endpoint,
         {
           method:"PATCH",
           headers:{
+            "Authorization":"Bearer "+token,
             "Content-Type":"application/json"
-          },
-          body:JSON.stringify({
-            status:status
-          })
+          }
         }
       );
 
+
     const data =
       await response.json();
+
 
     if(!response.ok){
 
@@ -546,18 +642,25 @@ async function changeStatus(id,status){
       return;
     }
 
+
     await load();
 
   }
 
   catch(error){
 
+    console.error(error);
+
     alert(
       "Could not connect to server."
     );
+
   }
+
 }
 
+
+/* ESCAPE HTML */
 
 function escapeHtml(value){
 
@@ -567,8 +670,11 @@ function escapeHtml(value){
     .replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;")
     .replace(/'/g,"&#039;");
+
 }
 
+
+/* FILTERS + AUTO REFRESH */
 
 $("date").onchange = load;
 
@@ -576,7 +682,10 @@ $("status").onchange = load;
 
 load();
 
-setInterval(load,15000);
+setInterval(
+  load,
+  15000
+);
 
 </script>
 
