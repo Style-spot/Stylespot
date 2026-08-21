@@ -683,7 +683,7 @@ $("bookingList").innerHTML="<p class='error'>"+(data.error||"Could not load book
 return;
 }
 
-if(!data.length){
+if(!data.bookings.length){
 
 $("bookingList").innerHTML="<p style='color:#999;text-align:center'>You don't have any bookings yet.</p>";
 
