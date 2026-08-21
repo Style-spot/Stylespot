@@ -463,11 +463,14 @@ async function load(){
 
 
     const statuses = [
-      "Pending",
-      "Confirmed",
-      "Completed",
-      "Cancelled"
-    ];
+  "Pending",
+  "AwaitingPayment",
+  "Confirmed",
+  "Completed",
+  "Cancelled",
+  "Rejected",
+  "Expired"
+];
 
 
     $("stats").innerHTML =
@@ -525,9 +528,15 @@ async function load(){
         }
 
 
-        else if(status === "Confirmed"){
+        else if(status === "AwaitingPayment"){
 
-          buttons = `
+  buttons = `
+    <div class="muted">
+      Waiting for customer payment
+    </div>
+  `;
+
+        }
             <button
               class="action complete"
               onclick="changeStatus('${x.id}','Completed')">
