@@ -707,6 +707,28 @@ $("bookingList").innerHTML=data.bookings.map(b=>`
 
 ${b.notes?`<div><b>Notes:</b> ${escapeHTML(b.notes)}</div>`:""}
 
+${
+b.status==="AwaitingPayment"
+?
+`
+<div style="margin-top:15px;padding-top:15px;border-top:1px solid #303036">
+<div style="color:#d8aa60;font-weight:800;margin-bottom:10px">
+Advance payment required
+</div>
+
+<button
+class="btn gold"
+type="button"
+onclick="startPayment('${b.id}')"
+>
+Pay Advance
+</button>
+</div>
+`
+:
+""
+}
+
 </div>
 
 `).join("");
