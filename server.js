@@ -2235,7 +2235,7 @@ PART 7 / 10
 CREATE ADVANCE PAYMENT
 =========================================================
 */
-
+  
 async function handleCreatePayment(
   req,
   res
@@ -2348,7 +2348,8 @@ async function handleCreatePayment(
          amount,
          type,
          status,
-         gateway
+         gateway,
+         gateway_order_id
        FROM payments
        WHERE booking_id = $1
        AND status = 'Pending'
@@ -2392,7 +2393,10 @@ async function handleCreatePayment(
             existing.status,
 
           gateway:
-            existing.gateway
+            existing.gateway,
+
+          gatewayOrderId:
+            existing.gateway_order_id
         }
       }
     );
@@ -2400,19 +2404,82 @@ async function handleCreatePayment(
 
   /*
   =======================================================
-  CREATE PAYMENT RECORD
-  =======================================================
-
-  Real payment gateway integration can be
-  connected later using Render environment
-  variables.
-
-  Payment is NOT marked as Paid here.
+  CREATE RAZORPAY ORDER
   =======================================================
   */
 
   const paymentId =
     crypto.randomUUID();
+
+  const advanceAmount =
+    Number(
+      booking.advance_amount
+    );
+
+  const amountInPaise =
+    Math.round(
+      advanceAmount * 100
+    );
+
+  if (
+    !Number.isFinite(
+      amountInPaise
+    ) ||
+    amountInPaise < 100
+  ) {
+    return send(
+      res,
+      400,
+      {
+        error:
+          "Invalid advance payment amount"
+      }
+    );
+  }
+
+  let razorpayOrder;
+
+  try {
+    razorpayOrder =
+      await razorpay.orders.create({
+        amount:
+          amountInPaise,
+
+        currency:
+          "INR",
+
+        receipt:
+          `SP${paymentId.replace(/-/g, "")}`,
+
+        notes: {
+          booking_id:
+            booking.id,
+
+          booking_no:
+            booking.booking_no
+        }
+      });
+  } catch (error) {
+    console.error(
+      "Razorpay order creation failed:",
+      error
+    );
+
+    return send(
+      res,
+      500,
+      {
+        error:
+          "Unable to create payment order"
+      }
+    );
+  }
+
+  /*
+  =======================================================
+  SAVE PAYMENT RECORD
+  =======================================================
+  */
 
   await pool.query(
     `INSERT INTO payments
@@ -2422,7 +2489,8 @@ async function handleCreatePayment(
        amount,
        type,
        status,
-       gateway
+       gateway,
+       gateway_order_id
      )
      VALUES
      (
@@ -2431,12 +2499,14 @@ async function handleCreatePayment(
        $3,
        'Advance',
        'Pending',
-       'Manual'
+       'Razorpay',
+       $4
      )`,
     [
       paymentId,
       booking.id,
-      booking.advance_amount
+      advanceAmount,
+      razorpayOrder.id
     ]
   );
 
@@ -2445,7 +2515,7 @@ async function handleCreatePayment(
     201,
     {
       message:
-        "Payment record created",
+        "Razorpay payment order created",
 
       payment: {
         id:
@@ -2458,9 +2528,10 @@ async function handleCreatePayment(
           booking.booking_no,
 
         amount:
-          Number(
-            booking.advance_amount
-          ),
+          advanceAmount,
+
+        amountInPaise:
+          amountInPaise,
 
         type:
           "Advance",
@@ -2469,12 +2540,17 @@ async function handleCreatePayment(
           "Pending",
 
         gateway:
-          "Manual"
+          "Razorpay",
+
+        gatewayOrderId:
+          razorpayOrder.id,
+
+        keyId:
+          process.env.RAZORPAY_KEY_ID
       }
     }
   );
 }
-
 /*
 =========================================================
 PAYMENT VERIFICATION
