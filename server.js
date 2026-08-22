@@ -8,6 +8,10 @@ const Razorpay = require("razorpay");
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
 
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 /*
 =========================================================
 STYLESPOT FINAL BACKEND
