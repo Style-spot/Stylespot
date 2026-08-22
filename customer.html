@@ -751,7 +751,137 @@ return String(value)
 .replace(/'/g,"&#039;");
 
 }
+async function startPayment(bookingId){
 
+  if(!currentUser){
+    alert("Please login first.");
+    return;
+  }
+
+  try{
+
+    const res = await fetch("/api/payments",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+getToken()
+      },
+      body:JSON.stringify({
+        bookingId:bookingId
+      })
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+      alert(data.error || "Could not start payment.");
+      return;
+    }
+
+    const payment = data.payment;
+
+    const options = {
+
+      key: payment.keyId,
+
+      amount: payment.amountInPaise,
+
+      currency: "INR",
+
+      name: "StyleSpot",
+
+      description: "Advance payment",
+
+      order_id: payment.gatewayOrderId,
+
+      prefill: {
+        name: currentUser.name,
+        contact: currentUser.phone
+      },
+
+      theme: {
+        color: "#d8aa60"
+      },
+
+      handler: async function(response){
+
+        alert(
+          "Payment completed. Verifying payment..."
+        );
+
+        try{
+
+          const verifyRes =
+            await fetch("/api/payments/verify",{
+              method:"POST",
+              headers:{
+                "Content-Type":"application/json",
+                "Authorization":"Bearer "+getToken()
+              },
+              body:JSON.stringify({
+                paymentId: payment.id,
+                razorpayPaymentId:
+                  response.razorpay_payment_id,
+                razorpayOrderId:
+                  response.razorpay_order_id,
+                razorpaySignature:
+                  response.razorpay_signature
+              })
+            });
+
+          const verifyData =
+            await verifyRes.json();
+
+          if(!verifyRes.ok){
+
+            alert(
+              verifyData.error ||
+              "Payment verification failed."
+            );
+
+            return;
+          }
+
+          alert(
+            "Payment successful and booking confirmed!"
+          );
+
+          showMyBookings();
+
+        }catch(error){
+
+          alert(
+            "Payment verification could not be completed."
+          );
+
+        }
+
+      },
+
+      modal: {
+        ondismiss: function(){
+          console.log(
+            "Razorpay checkout closed."
+          );
+        }
+      }
+
+    };
+
+    const razorpay =
+      new Razorpay(options);
+
+    razorpay.open();
+
+  }catch(error){
+
+    alert(
+      "Could not reach the server. Please try again."
+    );
+
+  }
+
+}
 async function loadSlots(){
 
 $("time").value="";
