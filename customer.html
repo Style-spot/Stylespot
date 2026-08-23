@@ -1001,7 +1001,7 @@ return;
 }
 
 $("msg").className="success";
-$("msg").innerHTML="<b>Booking request submitted</b><strong>"+data.booking.bookingNo+"</strong><p>"+data.name+", your "+data.service+" booking request is <b>Pending</b> and is waiting for salon confirmation for <b>"+data.date+"</b> at <b>"+data.time+"</b>.</p>";
+$("msg").innerHTML="<b>Booking request submitted</b><strong>"+data.booking.bookingNo+"</strong><p>"+data.booking.name+", your "+data.booking.services.map(s=>s.name+" — ₹"+s.price).join(", ")+" booking request is <b>Pending</b> and is waiting for salon confirmation for <b>"+data.booking.date+"</b> at <b>"+data.booking.time+"</b>.</p>";
 
 startBookingStatusCheck(data.booking.id);
 console.log("STATUS TIMER STARTED:", data.booking.id);
