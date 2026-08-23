@@ -2398,7 +2398,9 @@ async function handleCreatePayment(
           gatewayOrderId:
             existing.gateway_order_id
           keyId:
-  process.env.RAZORPAY_KEY_ID
+              process.env.RAZORPAY_KEY_ID
+    console.log("RAZORPAY KEY CHECK:", 
+     process.env.RAZORPAY_KEY_ID ? "PRESENT" : "MISSING");
         }
       }
     );
