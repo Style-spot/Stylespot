@@ -616,8 +616,12 @@ else if(status === "Confirmed"){
               <p>
                 ${escapeHtml(x.service)}
               </p>
-            <p style="margin:6px 0;color:#d8aa60;font-weight:700">
-  💳 Paid: ₹${Number(x.advance_amount || 0)}
+<p style="margin:6px 0;color:#d8aa60;font-weight:700">
+  💳 Paid: ₹${
+    x.payment_status === "Paid"
+      ? Number(x.advance_amount || 0)
+      : 0
+  }
   • Remaining: ₹${Number(x.remaining_amount || 0)}
 </p>
               <small>
