@@ -1521,6 +1521,7 @@ async function handleAvailableSlots(req, res, u) {
            'AwaitingPayment',
            'Confirmed',
            'Accepted'
+           'Completed'
          )`,
       [date]
     );
