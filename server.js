@@ -934,7 +934,30 @@ async function expirePendingBookings() {
     );
   }
 }
+async function expireAwaitingPaymentBookings() {
+  const result =
+    await pool.query(
+      `UPDATE bookings
+       SET
+         status = 'Expired',
+         expired_at = NOW(),
+         updated_at = NOW()
+       WHERE status = 'AwaitingPayment'
+       AND (
+         date + time::time
+       ) <= (
+         CURRENT_TIMESTAMP
+         AT TIME ZONE 'Asia/Kolkata'
+       )
+       RETURNING *`
+    );
 
+  if (result.rows.length) {
+    console.log(
+      `${result.rows.length} AwaitingPayment booking(s) expired.`
+    );
+  }
+}
 /*
 =========================================================
 EXPIRY WORKER
@@ -952,6 +975,15 @@ setInterval(
           );
         }
       );
+    expireAwaitingPaymentBookings()
+  .catch(
+    err => {
+      console.error(
+        "AwaitingPayment expiry worker error:",
+        err
+      );
+    }
+  );
   },
   20000
 );
