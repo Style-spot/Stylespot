@@ -2396,7 +2396,10 @@ async function handleCreatePayment(
             existing.gateway,
 
           gatewayOrderId:
-            existing.gateway_order_id
+  existing.gateway_order_id,
+
+keyId:
+  process.env.RAZORPAY_KEY_ID
         }
       } 
     );
