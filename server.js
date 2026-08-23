@@ -1525,7 +1525,8 @@ async function handleAvailableSlots(req, res, u) {
          )`,
       [date]
     );
-
+console.log("SLOT CHECK:", date, bookings.rows);
+  
   const bookedTimes =
     bookings.rows.map(
       row => row.time
