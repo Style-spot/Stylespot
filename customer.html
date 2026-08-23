@@ -1051,12 +1051,12 @@ function startBookingStatusCheck(bookingId){
       if(!res.ok) return;
 
       const data = await res.json();
-
+      console.log("BOOKING POLL:", data);
       const booking =
         data.bookings.find(
           b => String(b.id) === String(bookingId)
         );
-
+      console.log("BOOKING FOUND:", booking);
       if(!booking) return;
 
       if(
