@@ -3174,7 +3174,172 @@ async function handleBarberCancelBooking(
     }
   );
 }
+/*
+=========================================================
+REFUND PAYMENT FOR BOOKING
+=========================================================
+*/
 
+async function refundPaymentForBooking(
+  bookingId
+) {
+
+  const paymentResult =
+    await pool.query(
+      `SELECT
+         id,
+         booking_id,
+         amount,
+         status,
+         gateway,
+         gateway_payment_id,
+         gateway_order_id
+       FROM payments
+       WHERE booking_id = $1
+       AND status = 'Verified'
+       ORDER BY verified_at DESC
+       LIMIT 1`,
+      [
+        bookingId
+      ]
+    );
+
+  /*
+  -------------------------------------------------------
+  NO PAID PAYMENT
+  -------------------------------------------------------
+  */
+
+  if (!paymentResult.rows.length) {
+
+    await pool.query(
+      `UPDATE bookings
+       SET
+         refund_status = 'NotApplicable',
+         updated_at = NOW()
+       WHERE id = $1`,
+      [
+        bookingId
+      ]
+    );
+
+    return {
+      refunded: false,
+      amount: 0
+    };
+  }
+
+  const payment =
+    paymentResult.rows[0];
+
+  /*
+  -------------------------------------------------------
+  PREVENT DOUBLE REFUND
+  -------------------------------------------------------
+  */
+
+  if (
+    payment.status === 'Refunded'
+  ) {
+
+    return {
+      refunded: true,
+      amount: Number(payment.amount)
+    };
+  }
+
+  const amountInPaise =
+    Math.round(
+      Number(payment.amount) * 100
+    );
+
+  if (
+    !Number.isFinite(
+      amountInPaise
+    ) ||
+    amountInPaise < 100
+  ) {
+
+    throw new Error(
+      "Invalid refund amount"
+    );
+  }
+
+  /*
+  -------------------------------------------------------
+  RAZORPAY REFUND
+  -------------------------------------------------------
+  */
+
+  let refund;
+
+  try {
+
+    refund =
+      await razorpay.payments.refund(
+        payment.gateway_payment_id,
+        {
+          amount:
+            amountInPaise,
+
+          notes: {
+            booking_id:
+              bookingId
+          }
+        }
+      );
+
+  } catch (error) {
+
+    console.error(
+      "Razorpay refund failed:",
+      error
+    );
+
+    throw new Error(
+      "Unable to process refund"
+    );
+  }
+
+  /*
+  -------------------------------------------------------
+  UPDATE PAYMENT
+  -------------------------------------------------------
+  */
+
+  await pool.query(
+    `UPDATE payments
+     SET
+       status = 'Refunded'
+     WHERE id = $1`,
+    [
+      payment.id
+    ]
+  );
+
+  /*
+  -------------------------------------------------------
+  UPDATE BOOKING
+  -------------------------------------------------------
+  */
+
+  await pool.query(
+    `UPDATE bookings
+     SET
+       refund_status = 'Refunded',
+       updated_at = NOW()
+     WHERE id = $1`,
+    [
+      bookingId
+    ]
+  );
+
+  return {
+    refunded: true,
+    amount: Number(payment.amount),
+    refundId: refund.id
+  };
+}
 /*
 =========================================================
 CUSTOMER CANCEL BOOKING
