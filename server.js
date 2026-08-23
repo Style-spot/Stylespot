@@ -2583,13 +2583,27 @@ async function handleVerifyPayment(
       x.paymentId || ""
     ).trim();
 
-  if (!paymentId) {
+  const razorpayPaymentId =
+    String(
+      x.razorpayPaymentId || ""
+    ).trim();
+
+  const razorpaySignature =
+    String(
+      x.razorpaySignature || ""
+    ).trim();
+
+  if (
+    !paymentId ||
+    !razorpayPaymentId ||
+    !razorpaySignature
+  ) {
     return send(
       res,
       400,
       {
         error:
-          "Payment ID is required"
+          "Payment verification details are required"
       }
     );
   }
@@ -2643,26 +2657,215 @@ async function handleVerifyPayment(
     );
   }
 
+  if (
+    payment.status !==
+    "Pending"
+  ) {
+    return send(
+      res,
+      409,
+      {
+        error:
+          "Payment cannot be verified in its current status"
+      }
+    );
+  }
+
+  if (
+    !payment.gateway_order_id
+  ) {
+    return send(
+      res,
+      400,
+      {
+        error:
+          "Razorpay order ID is missing"
+      }
+    );
+  }
+
+  if (
+    !process.env.RAZORPAY_KEY_SECRET
+  ) {
+    console.error(
+      "RAZORPAY_KEY_SECRET is missing"
+    );
+
+    return send(
+      res,
+      500,
+      {
+        error:
+          "Payment verification is not configured"
+      }
+    );
+  }
+
   /*
   =======================================================
-  IMPORTANT
-  =======================================================
-
-  Do NOT trust the browser to declare
-  a payment successful.
-
-  A real gateway webhook/signature
-  verification must confirm the payment
-  before the booking becomes Confirmed.
+  VERIFY RAZORPAY SIGNATURE
   =======================================================
   */
 
+  const signatureBody =
+    payment.gateway_order_id +
+    "|" +
+    razorpayPaymentId;
+
+  const expectedSignature =
+    crypto
+      .createHmac(
+        "sha256",
+        process.env.RAZORPAY_KEY_SECRET
+      )
+      .update(signatureBody)
+      .digest("hex");
+
+  let signatureValid = false;
+
+  try {
+
+    const expectedBuffer =
+      Buffer.from(
+        expectedSignature,
+        "hex"
+      );
+
+    const receivedBuffer =
+      Buffer.from(
+        razorpaySignature,
+        "hex"
+      );
+
+    if (
+      expectedBuffer.length ===
+      receivedBuffer.length
+    ) {
+      signatureValid =
+        crypto.timingSafeEqual(
+          expectedBuffer,
+          receivedBuffer
+        );
+    }
+
+  } catch (error) {
+
+    signatureValid = false;
+
+  }
+
+  if (!signatureValid) {
+
+    return send(
+      res,
+      400,
+      {
+        error:
+          "Payment signature verification failed"
+      }
+    );
+  }
+
+  /*
+  =======================================================
+  PAYMENT VERIFIED
+  =======================================================
+  */
+
+  const updateResult =
+    await pool.query(
+      `UPDATE payments
+       SET
+         status = 'Verified',
+         gateway_payment_id = $1,
+         verified_at = NOW()
+       WHERE id = $2
+       AND status = 'Pending'
+       RETURNING *`,
+      [
+        razorpayPaymentId,
+        payment.id
+      ]
+    );
+
+  if (!updateResult.rows.length) {
+    return send(
+      res,
+      409,
+      {
+        error:
+          "Payment was already processed"
+      }
+    );
+  }
+
+  /*
+  =======================================================
+  CONFIRM BOOKING
+  =======================================================
+  */
+
+  const bookingResult =
+    await pool.query(
+      `UPDATE bookings
+       SET
+         status = 'Confirmed',
+         payment_status = 'Paid',
+         updated_at = NOW()
+       WHERE id = $1
+       AND user_id = $2
+       AND status = 'AwaitingPayment'
+       AND payment_status <> 'Paid'
+       RETURNING *`,
+      [
+        payment.booking_id,
+        customer.id
+      ]
+    );
+
+  if (!bookingResult.rows.length) {
+
+    return send(
+      res,
+      409,
+      {
+        error:
+          "Payment verified but booking could not be confirmed"
+      }
+    );
+  }
+
+  const booking =
+    bookingResult.rows[0];
+
+  await createNotification({
+    userId:
+      booking.user_id,
+
+    type:
+      "payment_success",
+
+    title:
+      "Payment Successful",
+
+    message:
+      `Advance payment received for booking ${booking.booking_no}. Your booking is confirmed.`,
+
+    bookingId:
+      booking.id
+  });
+
   return send(
     res,
-    400,
+    200,
     {
-      error:
-        "Real payment gateway verification is not configured yet"
+      message:
+        "Payment verified and booking confirmed",
+
+      payment:
+        updateResult.rows[0],
+
+      booking
     }
   );
 }
