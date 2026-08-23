@@ -3111,7 +3111,11 @@ async function handleBarberCancelBooking(
       }
     );
   }
-
+  console.log(
+    "BARBER CANCEL DEBUG:",
+    bookingId
+  );
+  
   const result =
     await pool.query(
       `UPDATE bookings
