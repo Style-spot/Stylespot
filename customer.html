@@ -1003,7 +1003,7 @@ return;
 $("msg").className="success";
 $("msg").innerHTML="<b>Booking request submitted</b><strong>"+data.booking.bookingNo+"</strong><p>"+data.name+", your "+data.service+" booking request is <b>Pending</b> and is waiting for salon confirmation for <b>"+data.date+"</b> at <b>"+data.time+"</b>.</p>";
 
-
+startBookingStatusCheck(data.booking.id);
 $("form").reset();
 
 $("date").value=today;
@@ -1030,7 +1030,59 @@ submitBtn.disabled=false;
 
 checkLogin();
 loadSlots();
+let bookingStatusTimer = null;
 
+function startBookingStatusCheck(bookingId){
+
+  if(bookingStatusTimer){
+    clearInterval(bookingStatusTimer);
+  }
+
+  bookingStatusTimer = setInterval(async ()=>{
+
+    try{
+
+      const res = await fetch("/api/bookings",{
+        headers:{
+          "Authorization":"Bearer "+getToken()
+        }
+      });
+
+      if(!res.ok) return;
+
+      const data = await res.json();
+
+      const booking =
+        data.bookings.find(
+          b => String(b.id) === String(bookingId)
+        );
+
+      if(!booking) return;
+
+      if(
+        booking.status !== "Pending"
+      ){
+
+        clearInterval(bookingStatusTimer);
+        bookingStatusTimer = null;
+
+        $("msg").innerHTML = "";
+
+      }
+
+    }catch(err){
+
+      console.log(
+        "Booking status check failed:",
+        err
+      );
+
+    }
+
+  },3000);
+
+}
+  
 </script>
 
 </body>
