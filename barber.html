@@ -616,14 +616,34 @@ else if(status === "Confirmed"){
               <p>
                 ${escapeHtml(x.service)}
               </p>
-<p style="margin:6px 0;color:#d8aa60;font-weight:700">
-  💳 Paid: ₹${
-    x.payment_status === "Paid"
-      ? Number(x.advance_amount || 0)
-      : 0
-  }
-  • Remaining: ₹${Number(x.remaining_amount || 0)}
-</p>
+            ${
+  status === "Completed"
+    ? `
+      <p style="margin:6px 0;color:#6fcf97;font-weight:700">
+        ✅ Payment: ₹${Number(x.advance_amount || 0)} received
+      </p>
+    `
+    : status === "Cancelled"
+      ? `
+        <p style="margin:6px 0;color:#999;font-weight:700">
+          ↩️ ${
+            x.payment_status === "Paid"
+              ? `₹${Number(x.advance_amount || 0)} refunded`
+              : "No payment made"
+          }
+        </p>
+      `
+      : `
+        <p style="margin:6px 0;color:#d8aa60;font-weight:700">
+          💳 Paid: ₹${
+            x.payment_status === "Paid"
+              ? Number(x.advance_amount || 0)
+              : 0
+          }
+          • Remaining: ₹${Number(x.remaining_amount || 0)}
+        </p>
+      `
+            }
               <small>
                 📞 ${escapeHtml(x.phone)}
                 ${
