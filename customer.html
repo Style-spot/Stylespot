@@ -766,6 +766,55 @@ return String(value)
 .replace(/'/g,"&#039;");
 
 }
+  async function cancelCustomerBooking(bookingId){
+
+  if(!currentUser){
+    alert("Please login first.");
+    return;
+  }
+
+  if(!confirm("Are you sure you want to cancel this booking? Advance payment will not be refunded.")){
+    return;
+  }
+
+  try{
+
+    const res = await fetch(
+      "/api/bookings/" + bookingId + "/cancel",
+      {
+        method:"PATCH",
+        headers:{
+          "Authorization":"Bearer " + getToken()
+        }
+      }
+    );
+
+    const data = await res.json();
+
+    if(!res.ok){
+      alert(
+        data.error ||
+        "Could not cancel booking."
+      );
+      return;
+    }
+
+    alert(
+      "Booking cancelled successfully. Advance payment is non-refundable."
+    );
+
+    showMyBookings();
+
+  }catch(error){
+
+    alert(
+      "Could not reach the server. Please try again."
+    );
+
+  }
+
+  }
+  
 async function startPayment(bookingId){
 
   if(!currentUser){
