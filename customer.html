@@ -890,19 +890,8 @@ async function startPayment(bookingId){
       },
       
      display: {
-  blocks: {
-    upi_only: {
-      name: "Pay via UPI",
-      instruments: [
-        {
-          method: "upi"
-        }
-      ]
-    }
-  },
-  sequence: ["block.upi_only"],
   preferences: {
-    show_default_blocks: false
+    show_default_blocks: true
   }
 },
       
