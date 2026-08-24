@@ -728,7 +728,22 @@ Pay Advance
 :
 ""
 }
-
+${
+["Pending","AwaitingPayment","Confirmed","Accepted"].includes(b.status)
+?
+`
+<button
+class="btn"
+type="button"
+onclick="cancelCustomerBooking('${b.id}')"
+style="margin-top:12px"
+>
+Cancel Booking
+</button>
+`
+:
+""
+}
 </div>
 
 `).join("");
