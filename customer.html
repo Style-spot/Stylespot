@@ -798,7 +798,24 @@ async function startPayment(bookingId){
         name: currentUser.name,
         contact: currentUser.phone
       },
-
+      
+     display: {
+  blocks: {
+    upi_only: {
+      name: "Pay via UPI",
+      instruments: [
+        {
+          method: "upi"
+        }
+      ]
+    }
+  },
+  sequence: ["block.upi_only"],
+  preferences: {
+    show_default_blocks: false
+  }
+},
+      
       theme: {
         color: "#d8aa60"
       },
