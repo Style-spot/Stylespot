@@ -3183,6 +3183,31 @@ async function handleBarberCancelBooking(
   const booking =
     result.rows[0];
   
+  let refundResult;
+
+try {
+
+  refundResult =
+    await refundPaymentForBooking(
+      booking.id
+    );
+
+} catch (error) {
+
+  console.error(
+    "Refund failed:",
+    error
+  );
+
+  return send(
+    res,
+    500,
+    {
+      error:
+        "Booking cancellation failed because the refund could not be processed"
+    }
+  );
+}
   await createNotification({
     userId:
       booking.user_id,
