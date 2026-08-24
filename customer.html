@@ -704,6 +704,32 @@ $("bookingList").innerHTML=data.bookings.map(b=>`
 <div><b>Time:</b> ${escapeHTML(b.time)}</div>
 
 <div><b>Status:</b> <span class="status">${escapeHTML(b.status)}</span></div>
+${
+  b.status === "Completed"
+    ? `
+      <div style="margin-top:6px;color:#6fcf97;font-weight:700">
+        ✅ Payment: ₹${Number(b.advance_amount || 0)} received
+      </div>
+    `
+    : b.status === "Cancelled"
+      ? `
+        <div style="margin-top:6px;color:#999;font-weight:700">
+          ${
+            b.refund_status === "Refunded"
+              ? `↩️ ₹${Number(b.advance_amount || 0)} refunded`
+              : "❌ No payment made"
+          }
+        </div>
+      `
+      : b.payment_status === "Paid"
+        ? `
+          <div style="margin-top:6px;color:#d8aa60;font-weight:700">
+            💳 Paid: ₹${Number(b.advance_amount || 0)}
+            • Remaining: ₹${Number(b.remaining_amount || 0)}
+          </div>
+        `
+        : ""
+}
 
 ${b.notes?`<div><b>Notes:</b> ${escapeHTML(b.notes)}</div>`:""}
 
