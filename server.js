@@ -3258,9 +3258,9 @@ async function refundPaymentForBooking(
          gateway_order_id
        FROM payments
        WHERE booking_id = $1
-      AND status IN ('Verified', 'Refunded')
-     ORDER BY verified_at DESC
-       LIMIT 1`,
+AND status = 'Verified'
+ORDER BY verified_at DESC
+LIMIT 1`,
       [
         bookingId
       ]
