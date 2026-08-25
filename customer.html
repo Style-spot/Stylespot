@@ -706,11 +706,14 @@ $("bookingList").innerHTML=data.bookings.map(b=>`
 <div><b>Status:</b> <span class="status">${escapeHTML(b.status)}</span></div>
 ${
   b.status === "Completed"
-    ? `
-      <div style="margin-top:6px;color:#6fcf97;font-weight:700">
-        ✅ Payment: ₹${Number(b.advance_amount || 0)} received
-      </div>
-    `
+  ? `
+    <div style="margin-top:6px;color:#6fcf97;font-weight:700">
+      ✅ Full payment: ₹${
+        Number(b.advance_amount || 0) +
+        Number(b.remaining_amount || 0)
+      } received
+    </div>
+  `
     : b.status === "Cancelled"
       ? `
         <div style="margin-top:6px;color:#999;font-weight:700">
