@@ -2892,18 +2892,18 @@ async function handleVerifyPayment(
   });
 
   return send(
-    res,
-    200,
-    {
-      message:
-        "Payment verified and booking confirmed",
+  res,
+  200,
+  {
+    message:
+      "Payment verified and booking confirmed",
 
-      payment:
-        updateResult.rows[0],
+    payment:
+      payment,
 
-      booking
-    }
-  );
+    booking
+  }
+);
 }
 
 /*
