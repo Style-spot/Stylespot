@@ -1153,22 +1153,108 @@ function startBookingStatusCheck(bookingId){
       if(!res.ok) return;
 
       const data = await res.json();
-      console.log("BOOKING POLL:", data);
+
       const booking =
         data.bookings.find(
           b => String(b.id) === String(bookingId)
         );
-      console.log("BOOKING FOUND:", booking);
+
       if(!booking) return;
 
+      if(booking.status === "Pending"){
+
+        $("msg").innerHTML = `
+          <div class="success">
+            <b>Booking request submitted</b>
+            <strong>${escapeHTML(booking.booking_no)}</strong>
+            <p>
+              Your booking request is
+              <b>Pending</b> and is waiting for salon confirmation.
+            </p>
+          </div>
+        `;
+
+      }
+
+      else if(booking.status === "AwaitingPayment"){
+
+        $("msg").innerHTML = `
+          <div class="success">
+            <b>Booking accepted</b>
+            <strong>${escapeHTML(booking.booking_no)}</strong>
+            <p>
+              Your booking has been accepted.
+              Please complete the advance payment from
+              <b>My Bookings</b>.
+            </p>
+          </div>
+        `;
+
+      }
+
+      else if(booking.status === "Confirmed"){
+
+        $("msg").innerHTML = `
+          <div class="success">
+            <b>Booking confirmed</b>
+            <strong>${escapeHTML(booking.booking_no)}</strong>
+            <p>
+              Your appointment is confirmed for
+              <b>${escapeHTML(String(booking.date))}</b>
+              at
+              <b>${escapeHTML(booking.time)}</b>.
+            </p>
+          </div>
+        `;
+
+      }
+
+      else if(booking.status === "Completed"){
+
+        $("msg").innerHTML = `
+          <div class="success">
+            <b>Appointment completed</b>
+            <strong>${escapeHTML(booking.booking_no)}</strong>
+            <p>
+              Your appointment has been completed successfully.
+            </p>
+          </div>
+        `;
+
+      }
+
+      else if(
+        booking.status === "Cancelled" ||
+        booking.status === "Rejected" ||
+        booking.status === "Expired"
+      ){
+
+        $("msg").innerHTML = `
+          <div class="success">
+            <b>Booking ${escapeHTML(booking.status)}</b>
+            <strong>${escapeHTML(booking.booking_no)}</strong>
+            <p>
+              This booking is no longer active.
+            </p>
+          </div>
+        `;
+
+      }
+
+      /*
+      Stop polling only after the booking
+      reaches a final state.
+      */
+
       if(
-        booking.status !== "Pending"
+        booking.status === "Completed" ||
+        booking.status === "Cancelled" ||
+        booking.status === "Rejected" ||
+        booking.status === "Expired"
       ){
 
         clearInterval(bookingStatusTimer);
         bookingStatusTimer = null;
-
-        $("msg").innerHTML = "";
 
       }
 
