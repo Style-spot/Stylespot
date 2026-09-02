@@ -1134,15 +1134,23 @@ let bookingStatusTimer = null;
 checkLogin();
 loadSlots();
 
+let bookingStatusTimer = null;
+
 function startBookingStatusCheck(bookingId){
 
   if(bookingStatusTimer){
     clearInterval(bookingStatusTimer);
   }
 
-  bookingStatusTimer = setInterval(async ()=>{
+  const syncCustomerData = async () => {
 
     try{
+
+      /*
+      ================================================
+      SYNC BOOKINGS
+      ================================================
+      */
 
       const res = await fetch("/api/bookings",{
         headers:{
@@ -1154,122 +1162,213 @@ function startBookingStatusCheck(bookingId){
 
       const data = await res.json();
 
-      const booking =
-        data.bookings.find(
-          b => String(b.id) === String(bookingId)
-        );
+      const bookings = data.bookings || [];
 
-      if(!booking) return;
+      /*
+      Update My Bookings automatically
+      if the section is currently open.
+      */
 
-      if(booking.status === "Pending"){
+      const myBookings =
+        $("myBookings");
 
-        $("msg").innerHTML = `
-          <div class="success">
-            <b>Booking request submitted</b>
-            <strong>${escapeHTML(booking.booking_no)}</strong>
-            <p>
-              Your booking request is
-              <b>Pending</b> and is waiting for salon confirmation.
-            </p>
-          </div>
-        `;
-
-      }
-
-      else if(booking.status === "AwaitingPayment"){
-
-        $("msg").innerHTML = `
-          <div class="success">
-            <b>Booking accepted</b>
-            <strong>${escapeHTML(booking.booking_no)}</strong>
-            <p>
-              Your booking has been accepted.
-              Please complete the advance payment from
-              <b>My Bookings</b>.
-            </p>
-          </div>
-        `;
-
-      }
-
-      else if(booking.status === "Confirmed"){
-
-        $("msg").innerHTML = `
-          <div class="success">
-            <b>Booking confirmed</b>
-            <strong>${escapeHTML(booking.booking_no)}</strong>
-            <p>
-              Your appointment is confirmed for
-              <b>${escapeHTML(String(booking.date))}</b>
-              at
-              <b>${escapeHTML(booking.time)}</b>.
-            </p>
-          </div>
-        `;
-
-      }
-
-      else if(booking.status === "Completed"){
-
-        $("msg").innerHTML = `
-          <div class="success">
-            <b>Appointment completed</b>
-            <strong>${escapeHTML(booking.booking_no)}</strong>
-            <p>
-              Your appointment has been completed successfully.
-            </p>
-          </div>
-        `;
-
-      }
-
-      else if(
-        booking.status === "Cancelled" ||
-        booking.status === "Rejected" ||
-        booking.status === "Expired"
+      if(
+        myBookings &&
+        !myBookings.classList.contains("hidden")
       ){
 
-        $("msg").innerHTML = `
-          <div class="success">
-            <b>Booking ${escapeHTML(booking.status)}</b>
-            <strong>${escapeHTML(booking.booking_no)}</strong>
-            <p>
-              This booking is no longer active.
-            </p>
-          </div>
-        `;
+        const bookingList =
+          $("bookingList");
+
+        if(bookingList){
+
+          /*
+          Reuse the existing My Bookings
+          rendering by refreshing it silently.
+          */
+
+          const wasLoading =
+            bookingList.innerHTML === "Loading...";
+
+          if(!wasLoading){
+
+            const currentScroll =
+              window.scrollY;
+
+            /*
+            Existing showMyBookings()
+            already contains your latest
+            payment/refund wording.
+            */
+
+            await showMyBookings();
+
+            window.scrollTo(
+              0,
+              currentScroll
+            );
+          }
+        }
+      }
+
+      /*
+      ================================================
+      UPDATE CURRENT BOOKING MESSAGE
+      ================================================
+      */
+
+      if(bookingId){
+
+        const booking =
+          bookings.find(
+            b =>
+              String(b.id) ===
+              String(bookingId)
+          );
+
+        if(booking){
+
+          if(booking.status === "Pending"){
+
+            $("msg").innerHTML = `
+              <div class="success">
+                <b>Booking request submitted</b>
+                <strong>${escapeHTML(booking.booking_no)}</strong>
+                <p>
+                  Your booking request is
+                  <b>Pending</b> and is waiting for salon confirmation.
+                </p>
+              </div>
+            `;
+
+          }
+
+          else if(
+            booking.status ===
+            "AwaitingPayment"
+          ){
+
+            $("msg").innerHTML = `
+              <div class="success">
+                <b>Booking accepted</b>
+                <strong>${escapeHTML(booking.booking_no)}</strong>
+                <p>
+                  Your booking has been accepted.
+                  Please complete the advance payment from
+                  <b>My Bookings</b>.
+                </p>
+              </div>
+            `;
+
+          }
+
+          else if(
+            booking.status ===
+            "Confirmed"
+          ){
+
+            $("msg").innerHTML = `
+              <div class="success">
+                <b>Booking confirmed</b>
+                <strong>${escapeHTML(booking.booking_no)}</strong>
+                <p>
+                  Your appointment is confirmed for
+                  <b>${escapeHTML(String(booking.date))}</b>
+                  at
+                  <b>${escapeHTML(booking.time)}</b>.
+                </p>
+              </div>
+            `;
+
+          }
+
+          else if(
+            booking.status ===
+            "Completed"
+          ){
+
+            $("msg").innerHTML = `
+              <div class="success">
+                <b>Appointment completed</b>
+                <strong>${escapeHTML(booking.booking_no)}</strong>
+                <p>
+                  Your appointment has been completed successfully.
+                </p>
+              </div>
+            `;
+
+          }
+
+          else if(
+            booking.status === "Cancelled" ||
+            booking.status === "Rejected" ||
+            booking.status === "Expired"
+          ){
+
+            $("msg").innerHTML = `
+              <div class="success">
+                <b>Booking ${escapeHTML(booking.status)}</b>
+                <strong>${escapeHTML(booking.booking_no)}</strong>
+                <p>
+                  This booking is no longer active.
+                </p>
+              </div>
+            `;
+
+          }
+
+        }
 
       }
 
       /*
-      Stop polling only after the booking
-      reaches a final state.
+      ================================================
+      SYNC AVAILABLE SLOTS
+      ================================================
       */
 
+      const dateInput =
+        $("date");
+
       if(
-        booking.status === "Completed" ||
-        booking.status === "Cancelled" ||
-        booking.status === "Rejected" ||
-        booking.status === "Expired"
+        dateInput &&
+        dateInput.value
       ){
 
-        clearInterval(bookingStatusTimer);
-        bookingStatusTimer = null;
+        await loadSlots();
 
       }
 
     }catch(err){
 
       console.log(
-        "Booking status check failed:",
+        "Customer auto-sync failed:",
         err
       );
 
     }
 
-  },3000);
+  };
+
+  /*
+  Run immediately
+  */
+
+  syncCustomerData();
+
+  /*
+  Continue syncing every 2 seconds
+  while customer page is open.
+  */
+
+  bookingStatusTimer =
+    setInterval(
+      syncCustomerData,
+      2000
+    );
 
 }
+      
   
 </script>
 
