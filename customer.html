@@ -1134,79 +1134,169 @@ let bookingStatusTimer = null;
 checkLogin();
 loadSlots();
 startBookingStatusCheck(null);
-  
-function startBookingStatusCheck(bookingId){
+
+  function startBookingStatusCheck(bookingId){
 
   if(bookingStatusTimer){
     clearInterval(bookingStatusTimer);
   }
 
+  let lastBookingSignature = "";
+
   const syncCustomerData = async () => {
 
     try{
 
-      /*
-      ================================================
-      SYNC BOOKINGS
-      ================================================
-      */
-      console.log("AUTO SYNC RUNNING");
-      
       const res = await fetch(
-  "/api/bookings?_sync=" + Date.now(),
-  {
-    cache:"no-store",
-    headers:{
-      "Authorization":"Bearer "+getToken()
-    }
-  }
-);
+        "/api/bookings?_sync=" + Date.now(),
+        {
+          cache:"no-store",
+          headers:{
+            "Authorization":"Bearer " + getToken()
+          }
+        }
+      );
 
       if(!res.ok) return;
 
       const data = await res.json();
-
       const bookings = data.bookings || [];
 
       const bookingSignature =
-  JSON.stringify(
-    bookings.map(b => ({
-      id: b.id,
-      status: b.status,
-      payment_status: b.payment_status,
-      refund_status: b.refund_status,
-      advance_amount: b.advance_amount,
-      remaining_amount: b.remaining_amount,
-      updated_at: b.updated_at
-    }))
-  );
+        JSON.stringify(
+          bookings.map(b => ({
+            id: b.id,
+            status: b.status,
+            payment_status: b.payment_status,
+            refund_status: b.refund_status,
+            advance_amount: b.advance_amount,
+            remaining_amount: b.remaining_amount,
+            updated_at: b.updated_at
+          }))
+        );
 
-if(
-  window.lastBookingSignature &&
-  window.lastBookingSignature !== bookingSignature
-){
-  const currentScroll = window.scrollY;
-
-  await showMyBookings();
-
-  window.scrollTo(0, currentScroll);
-}
-
-window.lastBookingSignature = bookingSignature;
-      
       /*
-      Update My Bookings automatically
-      if the section is currently open.
+      Update My Bookings only when
+      actual booking data changes.
       */
 
-      const myBookings =
-        $("myBookings");
+      if(
+        lastBookingSignature &&
+        lastBookingSignature !== bookingSignature &&
+        !$("myBookings").classList.contains("hidden")
+      ){
 
+        const list = $("bookingList");
+
+        if(list){
+
+          list.innerHTML = bookings.map(b => `
+
+            <div class="booking-card">
+
+              <div><b>Booking:</b> ${escapeHTML(b.booking_no)}</div>
+
+              <div><b>Service:</b> ${escapeHTML(b.service)}</div>
+
+              <div><b>Date:</b> ${escapeHTML(String(b.date))}</div>
+
+              <div><b>Time:</b> ${escapeHTML(b.time)}</div>
+
+              <div>
+                <b>Status:</b>
+                <span class="status">
+                  ${escapeHTML(b.status)}
+                </span>
+              </div>
+
+              ${
+                b.status === "Completed"
+                ? `
+                  <div style="margin-top:6px;color:#6fcf97;font-weight:700">
+                    ✅ FULL PAYMENT OF ₹${
+                      Number(b.advance_amount || 0) +
+                      Number(b.remaining_amount || 0)
+                    } DONE
+                  </div>
+                `
+                : b.status === "Cancelled"
+                  ? `
+                    <div style="margin-top:6px;color:#999;font-weight:700">
+                      ${
+                        b.refund_status === "Refunded"
+                          ? `↩️ ₹${Number(b.advance_amount || 0)} refund got`
+                          : "❌ No payment made"
+                      }
+                    </div>
+                  `
+                  : b.payment_status === "Paid"
+                    ? `
+                      <div style="margin-top:6px;color:#d8aa60;font-weight:700">
+                        💳 Paid: ₹${Number(b.advance_amount || 0)}
+                        • Remaining: ₹${Number(b.remaining_amount || 0)}
+                      </div>
+                    `
+                    : ""
+              }
+
+              ${
+                b.notes
+                ? `<div><b>Notes:</b> ${escapeHTML(b.notes)}</div>`
+                : ""
+              }
+
+              ${
+                b.status === "AwaitingPayment"
+                ?
+                `
+                  <div style="margin-top:15px;padding-top:15px;border-top:1px solid #303036">
+
+                    <div style="color:#d8aa60;font-weight:800;margin-bottom:10px">
+                      Advance payment required
+                    </div>
+
+                    <button
+                      class="btn gold"
+                      type="button"
+                      onclick="startPayment('${b.id}')"
+                    >
+                      Pay Advance
+                    </button>
+
+                  </div>
+                `
+                :
+                ""
+              }
+
+              ${
+                ["Pending","AwaitingPayment","Confirmed","Accepted"].includes(b.status)
+                ?
+                `
+                  <button
+                    class="btn"
+                    type="button"
+                    onclick="cancelCustomerBooking('${b.id}')"
+                    style="margin-top:12px"
+                  >
+                    Cancel Booking
+                  </button>
+                `
+                :
+                ""
+              }
+
+            </div>
+
+          `).join("");
+
+        }
+      }
+
+      lastBookingSignature = bookingSignature;
 
       /*
-      ================================================
-      UPDATE CURRENT BOOKING MESSAGE
-      ================================================
+      Update current booking message
       */
 
       if(bookingId){
@@ -1235,10 +1325,7 @@ window.lastBookingSignature = bookingSignature;
 
           }
 
-          else if(
-            booking.status ===
-            "AwaitingPayment"
-          ){
+          else if(booking.status === "AwaitingPayment"){
 
             $("msg").innerHTML = `
               <div class="success">
@@ -1254,10 +1341,7 @@ window.lastBookingSignature = bookingSignature;
 
           }
 
-          else if(
-            booking.status ===
-            "Confirmed"
-          ){
+          else if(booking.status === "Confirmed"){
 
             $("msg").innerHTML = `
               <div class="success">
@@ -1274,10 +1358,7 @@ window.lastBookingSignature = bookingSignature;
 
           }
 
-          else if(
-            booking.status ===
-            "Completed"
-          ){
+          else if(booking.status === "Completed"){
 
             $("msg").innerHTML = `
               <div class="success">
@@ -1313,14 +1394,6 @@ window.lastBookingSignature = bookingSignature;
 
       }
 
-      /*
-      ================================================
-      SYNC AVAILABLE SLOTS
-      ================================================
-      */
-
-    
-
     }catch(err){
 
       console.log(
@@ -1332,16 +1405,7 @@ window.lastBookingSignature = bookingSignature;
 
   };
 
-  /*
-  Run immediately
-  */
-
   syncCustomerData();
-
-  /*
-  Continue syncing every 2 seconds
-  while customer page is open.
-  */
 
   bookingStatusTimer =
     setInterval(
@@ -1349,7 +1413,7 @@ window.lastBookingSignature = bookingSignature;
       2000
     );
 
-}
+  }
       
   
 </script>
