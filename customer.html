@@ -1164,6 +1164,32 @@ function startBookingStatusCheck(bookingId){
 
       const bookings = data.bookings || [];
 
+      const bookingSignature =
+  JSON.stringify(
+    bookings.map(b => ({
+      id: b.id,
+      status: b.status,
+      payment_status: b.payment_status,
+      refund_status: b.refund_status,
+      advance_amount: b.advance_amount,
+      remaining_amount: b.remaining_amount,
+      updated_at: b.updated_at
+    }))
+  );
+
+if(
+  window.lastBookingSignature &&
+  window.lastBookingSignature !== bookingSignature
+){
+  const currentScroll = window.scrollY;
+
+  await showMyBookings();
+
+  window.scrollTo(0, currentScroll);
+}
+
+window.lastBookingSignature = bookingSignature;
+      
       /*
       Update My Bookings automatically
       if the section is currently open.
