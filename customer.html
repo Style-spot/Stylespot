@@ -1150,7 +1150,8 @@ function startBookingStatusCheck(bookingId){
       SYNC BOOKINGS
       ================================================
       */
-
+      console.log("AUTO SYNC RUNNING");
+      
       const res = await fetch("/api/bookings",{
         headers:{
           "Authorization":"Bearer "+getToken()
