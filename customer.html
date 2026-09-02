@@ -1152,12 +1152,15 @@ function startBookingStatusCheck(bookingId){
       */
       console.log("AUTO SYNC RUNNING");
       
-      const res = await fetch("/api/bookings",{
-  cache:"no-store",
-  headers:{
-    "Authorization":"Bearer "+getToken()
+      const res = await fetch(
+  "/api/bookings?_sync=" + Date.now(),
+  {
+    cache:"no-store",
+    headers:{
+      "Authorization":"Bearer "+getToken()
+    }
   }
-});
+);
 
       if(!res.ok) return;
 
