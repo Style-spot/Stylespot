@@ -1133,7 +1133,8 @@ let bookingStatusTimer = null;
 
 checkLogin();
 loadSlots();
-
+startBookingStatusCheck(null);
+  
 function startBookingStatusCheck(bookingId){
 
   if(bookingStatusTimer){
