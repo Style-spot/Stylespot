@@ -1171,44 +1171,6 @@ function startBookingStatusCheck(bookingId){
       const myBookings =
         $("myBookings");
 
-      if(
-        myBookings &&
-        !myBookings.classList.contains("hidden")
-      ){
-
-        const bookingList =
-          $("bookingList");
-
-        if(bookingList){
-
-          /*
-          Reuse the existing My Bookings
-          rendering by refreshing it silently.
-          */
-
-          const wasLoading =
-            bookingList.innerHTML === "Loading...";
-
-          if(!wasLoading){
-
-            const currentScroll =
-              window.scrollY;
-
-            /*
-            Existing showMyBookings()
-            already contains your latest
-            payment/refund wording.
-            */
-
-            await showMyBookings();
-
-            window.scrollTo(
-              0,
-              currentScroll
-            );
-          }
-        }
-      }
 
       /*
       ================================================
