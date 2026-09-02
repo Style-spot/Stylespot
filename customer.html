@@ -1130,7 +1130,8 @@ submitBtn.disabled=false;
 };
 
 let bookingStatusTimer = null;
-
+let lastBookingSignature = "";
+  
 checkLogin();
 loadSlots();
 startBookingStatusCheck(null);
@@ -1141,7 +1142,7 @@ startBookingStatusCheck(null);
     clearInterval(bookingStatusTimer);
   }
 
-  let lastBookingSignature = "";
+  
 
   const syncCustomerData = async () => {
 
