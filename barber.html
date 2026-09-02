@@ -620,7 +620,7 @@ else if(status === "Confirmed"){
   status === "Completed"
     ? `
       <p style="margin:6px 0;color:#6fcf97;font-weight:700">
-        ✅ Payment: ₹${Number(x.advance_amount || 0)} received
+        ✅ Full payment of ₹${Number(x.total_amount || 0)} received
       </p>
     `
     : status === "Cancelled"
